@@ -5,302 +5,187 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Archive Drive v6.2</title>
 <style>
-:root{--bg:#0a0e14;--card:#141b23;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--danger:#ef4444}
+:root{--bg:#0a0e14;--sidebar:#0f172a;--card:#141b23;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--danger:#ef4444}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
 .hidden{display:none!important}
 
-/* Login */
+/* Login (unchanged) */
 #login{height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,#1e293b 0%,#0a0e14 100%)}
-.login-box{background:var(--card);padding:40px;border-radius:16px;width:100%;max-width:360px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-box{background:var(--card);padding:40px;border-radius:16px;width:100%;max-width:360px;border:1px solid var(--border)}
 .login-box h1{font-size:24px;margin-bottom:8px;background:linear-gradient(135deg,var(--primary),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.login-box p{color:var(--muted);font-size:14px;margin-bottom:24px}
-input{width:100%;padding:12px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;transition:border .2s}
+input{width:100%;padding:12px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px}
 input:focus{outline:none;border-color:var(--primary)}
-button{width:100%;padding:12px;background:var(--primary);border:0;border-radius:8px;color:#fff;font-weight:500;cursor:pointer;transition:opacity .2s;font-size:14px}
-button:hover{opacity:.9}
-button:disabled{opacity:.5;cursor:not-allowed}
+button{width:100%;padding:12px;background:var(--primary);border:0;border-radius:8px;color:#fff;font-weight:500;cursor:pointer;font-size:14px}
 .error{color:var(--danger);font-size:13px;margin-top:8px;min-height:18px}
 
-/* App */
-#app{height:100vh;display:flex;flex-direction:column}
-header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;gap:8px}
-.logo{font-weight:600;font-size:18px;margin-right:24px;display:flex;align-items:center;gap:8px}
-.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
-.nav-tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);transition:all .2s;user-select:none}
-.nav-tab:hover{color:var(--text);background:rgba(255,255,255,.05)}
-.nav-tab.active{background:var(--primary);color:#fff}
-.header-right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
+/* App Layout */
+#app{height:100vh;display:flex}
+.sidebar{width:260px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform .3s;z-index:100}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.logo-text{font-weight:600;font-size:18px}
+.sidebar-nav{flex:1;padding:16px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;cursor:pointer;margin-bottom:4px;color:var(--muted);transition:all .2s;font-size:14px}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--text)}
+.nav-item.active{background:var(--primary);color:#fff}
+.nav-icon{width:20px;text-align:center;font-size:18px}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
 
-/* Main */
-main{flex:1;overflow:auto;padding:24px;max-width:1400px;width:100%;margin:0 auto}
+/* Main content */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:18px}
+.topbar-title{font-weight:500;flex:1}
+.topbar-status{font-size:12px;color:var(--muted)}
+.content{flex:1;overflow:auto;padding:24px}
+
+/* Responsive */
+@media (max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  .menu-btn{display:flex;align-items:center;justify-content:center}
+  .content{padding:16px}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;display:none}
+  .overlay.show{display:block}
+}
+
+/* Components (grid, cards, etc - same as before but compact) */
 .toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.search-box{flex:1;min-width:300px;position:relative}
-.search-box input{padding-left:40px;margin:0}
-.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
-.view-toggle{display:flex;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:2px}
-.view-btn{padding:8px 12px;background:transparent;border:0;color:var(--muted);cursor:pointer;border-radius:6px;font-size:13px}
-.view-btn.active{background:var(--primary);color:#fff}
-
-/* Grid */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-.list{display:flex;flex-direction:column;gap:8px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
-.card-icon{width:48px;height:48px;background:#0f172a;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px}
-.card-title{font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-meta{font-size:12px;color:var(--muted);display:flex;gap:12px}
-.card-actions{position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s}
-.card:hover .card-actions{opacity:1}
-.action-btn{width:28px;height:28px;background:#0f172a;border:1px solid var(--border);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin-left:4px;font-size:14px}
-.action-btn:hover{background:var(--primary);border-color:var(--primary)}
-
-/* List view */
-.list-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s}
-.list-item:hover{border-color:var(--primary);background:rgba(59,130,246,.05)}
-.list-icon{font-size:20px;width:32px;text-align:center}
-.list-info{flex:1;min-width:0}
-.list-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-meta{font-size:12px;color:var(--muted);margin-top:2px}
-
-/* Upload */
-.upload-area{border:2px dashed var(--border);border-radius:12px;padding:60px 20px;text-align:center;background:var(--card);cursor:pointer;transition:all .2s;margin-bottom:24px}
-.upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:rgba(59,130,246,.05)}
-.upload-icon{font-size:48px;margin-bottom:16px;opacity:.5}
-.upload-text{font-size:16px;margin-bottom:8px}
-.upload-hint{font-size:13px;color:var(--muted)}
-.progress-bar{height:4px;background:#0f172a;border-radius:2px;overflow:hidden;margin-top:16px;display:none}
-.progress-fill{height:100%;background:var(--primary);width:0%;transition:width .3s}
-
-/* Empty state */
-.empty{padding:80px 20px;text-align:center;color:var(--muted)}
-.empty-icon{font-size:64px;margin-bottom:16px;opacity:.3}
-.empty-title{font-size:18px;margin-bottom:8px;color:var(--text)}
-.empty-text{font-size:14px}
-
-/* Loading */
-.loading{display:flex;align-items:center;justify-content:center;padding:60px}
-.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{padding-left:36px;margin:0}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+@media (max-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s}
+.card:hover{border-color:var(--primary);transform:translateY(-2px)}
+.card-icon{width:40px;height:40px;background:#0f172a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
+.card-title{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.card-meta{font-size:11px;color:var(--muted)}
+.list-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer}
+.list-item:hover{border-color:var(--primary)}
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:20px}
+.upload-area:hover{border-color:var(--primary)}
+.empty{padding:60px 20px;text-align:center;color:var(--muted)}
+.loading{display:flex;justify-content:center;padding:40px}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-/* Toast */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);padding:12px 20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;max-width:320px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);padding:12px 16px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;font-size:13px;max-width:280px}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.success{border-left:3px solid var(--success)}
-.toast.error{border-left:3px solid var(--danger)}
 </style>
 </head>
 <body>
 
-<!-- Login -->
 <div id="login">
   <div class="login-box">
     <h1>Archive Drive</h1>
-    <p>Private cloud storage v6.2</p>
-    <input id="user" type="text" placeholder="Username" value="admin" autocomplete="username">
-    <input id="pass" type="password" placeholder="Password" value="Admin@2330" autocomplete="current-password">
-    <button id="loginBtn" onclick="login()">Sign In</button>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Private cloud v6.2</p>
+    <input id="user" placeholder="Username" value="admin">
+    <input id="pass" type="password" placeholder="Password" value="Admin@2330">
+    <button onclick="login()">Sign In</button>
     <div id="loginErr" class="error"></div>
   </div>
 </div>
 
-<!-- App -->
 <div id="app" class="hidden">
-  <header>
-    <div class="logo"><div class="logo-icon">A</div>Archive Drive</div>
-    <div class="nav-tab active" data-tab="drive" onclick="switchTab('drive')">Drive</div>
-    <div class="nav-tab" data-tab="my" onclick="switchTab('my')">My Uploads</div>
-    <div class="nav-tab" data-tab="upload" onclick="switchTab('upload')">Upload</div>
-    <div class="header-right">
-      <span id="status">Ready</span>
-      <span style="cursor:pointer" onclick="logout()">Logout</span>
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+  
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">A</div>
+      <div class="logo-text">Archive Drive</div>
     </div>
-  </header>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-page="drive" onclick="goPage('drive')">
+        <span class="nav-icon">📁</span><span>Drive</span>
+      </div>
+      <div class="nav-item" data-page="my" onclick="goPage('my')">
+        <span class="nav-icon">☁</span><span>My Uploads</span>
+      </div>
+      <div class="nav-item" data-page="upload" onclick="goPage('upload')">
+        <span class="nav-icon">⬆</span><span>Upload</span>
+      </div>
+      <div class="nav-item" data-page="search" onclick="goPage('search')">
+        <span class="nav-icon">⌕</span><span>Search</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div>namaycb</div>
+      <div style="margin-top:4px;cursor:pointer" onclick="logout()">Logout →</div>
+    </div>
+  </aside>
 
-  <main>
-    <!-- Drive Tab -->
-    <div id="tab-drive">
-      <div class="toolbar">
-        <div class="search-box">
-          <span class="search-icon">⌕</span>
-          <input id="searchInput" placeholder="Enter identifier or search..." onkeypress="if(event.key==='Enter')searchDrive()">
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title" id="pageTitle">Drive</div>
+      <div class="topbar-status" id="status">Ready</div>
+    </div>
+    
+    <div class="content">
+      <!-- Drive Page -->
+      <div id="page-drive">
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">⌕</span>
+            <input id="searchInput" placeholder="Enter identifier..." onkeypress="if(event.key==='Enter')loadDrive()">
+          </div>
+          <button onclick="loadDrive()" style="width:auto;padding:10px 20px">Load</button>
         </div>
-        <div class="view-toggle">
-          <button class="view-btn active" onclick="setView('grid')">⊞ Grid</button>
-          <button class="view-btn" onclick="setView('list')">☰ List</button>
+        <div id="driveGrid"></div>
+      </div>
+
+      <!-- My Uploads Page -->
+      <div id="page-my" class="hidden">
+        <div id="myGrid"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- Upload Page -->
+      <div id="page-upload" class="hidden">
+        <div class="upload-area" onclick="fileInput.click()">
+          <div style="font-size:36px;margin-bottom:12px;opacity:.5">⬆</div>
+          <div>Tap to select files</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px">Max 5GB • Archive.org storage</div>
         </div>
+        <input type="file" id="fileInput" class="hidden" multiple onchange="uploadFiles(this.files)">
+        <input id="customId" placeholder="Custom identifier (optional)" style="margin-bottom:16px">
+        <div id="uploadList"></div>
       </div>
-      <div id="driveContent"><div class="empty"><div class="empty-icon">📁</div><div class="empty-title">No files loaded</div><div class="empty-text">Enter an identifier above or go to My Uploads</div></div></div>
-    </div>
 
-    <!-- My Uploads Tab -->
-    <div id="tab-my" class="hidden">
-      <div class="toolbar">
-        <h2 style="flex:1">Your Archive.org Items</h2>
-        <button onclick="loadMyItems()" style="width:auto;padding:8px 16px">↻ Refresh</button>
+      <!-- Search Page -->
+      <div id="page-search" class="hidden">
+        <div class="toolbar">
+          <div class="search-box" style="flex:1">
+            <span class="search-icon">⌕</span>
+            <input id="globalSearch" placeholder="Search your uploads..." onkeypress="if(event.key==='Enter')doSearch()">
+          </div>
+        </div>
+        <div id="searchResults"></div>
       </div>
-      <div id="myContent"><div class="loading"><div class="spinner"></div></div></div>
     </div>
-
-    <!-- Upload Tab -->
-    <div id="tab-upload" class="hidden">
-      <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
-        <div class="upload-icon">⬆</div>
-        <div class="upload-text">Drop files here or click to browse</div>
-        <div class="upload-hint">Max 5GB per file • Stored on Archive.org</div>
-        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
-      </div>
-      <input type="file" id="fileInput" class="hidden" multiple onchange="handleFiles(this.files)">
-      <div style="display:flex;gap:12px;margin-bottom:20px">
-        <input id="customId" placeholder="Custom identifier (optional)" style="flex:1;margin:0">
-        <button onclick="document.getElementById('fileInput').click()" style="width:auto;padding:12px 24px">Select Files</button>
-      </div>
-      <div id="uploadQueue"></div>
-    </div>
-  </main>
+  </div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-const API = '';
-let token = localStorage.getItem('ad_token');
-let currentView = 'grid';
-let myItemsCache = null;
+const API=''; let token=localStorage.getItem('ad_token');
+if(token){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadMy();}
 
-// Init
-if (token) { document.getElementById('login').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadMyItems(); }
-document.getElementById('pass').addEventListener('keypress', e => e.key === 'Enter' && login());
+function toggleSidebar(force){const s=document.getElementById('sidebar'),o=document.getElementById('overlay');const open=force!==undefined?force:!s.classList.contains('open');s.classList.toggle('open',open);o.classList.toggle('show',open);}
+function goPage(p){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));document.querySelectorAll('[id^="page-"]').forEach(pg=>pg.classList.add('hidden'));document.getElementById('page-'+p).classList.remove('hidden');document.getElementById('pageTitle').textContent=p.charAt(0).toUpperCase()+p.slice(1).replace('my','My Uploads');toggleSidebar(false);if(p==='my')loadMy();}
+async function login(){try{const r=await fetch(`${API}/api/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user.value,password:pass.value})});const d=await r.json();if(d.token){token=d.token;localStorage.setItem('ad_token',token);login.classList.add('hidden');app.classList.remove('hidden');loadMy();showToast('Logged in')}else{loginErr.textContent='Invalid'}}catch(e){loginErr.textContent=e.message}}
+function logout(){localStorage.clear();location.reload()}
+function showToast(m){const t=toast;t.textContent=m;t.className='toast success show';setTimeout(()=>t.classList.remove('show'),2500)}
+function apiH(){return{'Authorization':'Bearer '+token}}
+function fmt(b){if(!b)return'0';const u=['B','KB','MB','GB'];let i=0;while(b>=1024&&i<3){b/=1024;i++}return b.toFixed(1)+u[i]}
+function icon(n){const e=n.split('.').pop().toLowerCase();return['mp4','mkv','avi'].includes(e)?'🎬':['mp3','wav'].includes(e)?'🎵':['jpg','png','gif'].includes(e)?'🖼':'pdf'===e?'📄':'📄'}
 
-async function login() {
-  const btn = document.getElementById('loginBtn');
-  btn.disabled = true; btn.textContent = 'Signing in...';
-  try {
-    const res = await fetch(`${API}/api/login`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({username: user.value, password: pass.value})
-    });
-    const data = await res.json();
-    if (data.token) {
-      token = data.token; localStorage.setItem('ad_token', token);
-      document.getElementById('login').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      loadMyItems(); showToast('Welcome back!', 'success');
-    } else throw new Error(data.error);
-  } catch (e) {
-    document.getElementById('loginErr').textContent = e.message;
-  } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
-}
-
-function logout() { localStorage.removeItem('ad_token'); location.reload(); }
-function switchTab(tab) {
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.querySelectorAll('[id^="tab-"]').forEach(p => p.classList.add('hidden'));
-  document.getElementById(`tab-${tab}`).classList.remove('hidden');
-  if (tab === 'my' && !myItemsCache) loadMyItems();
-}
-function setView(view) {
-  currentView = view;
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.textContent.includes(view === 'grid' ? 'Grid' : 'List')));
-  const container = document.getElementById('driveContent');
-  if (container.dataset.files) renderFiles(JSON.parse(container.dataset.files));
-}
-function showToast(msg, type='') { const t=document.getElementById('toast'); t.textContent=msg; t.className=`toast ${type} show`; setTimeout(()=>t.classList.remove('show'),3000); }
-function apiHeaders() { return { 'Authorization': `Bearer ${token}` }; }
-function formatSize(b){ if(!b)return'0 B'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<u.length-1){b/=1024;i++} return b.toFixed(1)+' '+u[i]; }
-function getIcon(name){ const e=name.split('.').pop().toLowerCase(); if(['mp4','mkv','avi','mov'].includes(e))return'🎬'; if(['mp3','wav','flac'].includes(e))return'🎵'; if(['jpg','jpeg','png','gif','webp'].includes(e))return'🖼'; if(['pdf'].includes(e))return'📄'; if(['zip','rar','7z'].includes(e))return'📦'; return'📄'; }
-
-async function searchDrive() {
-  const id = document.getElementById('searchInput').value.trim();
-  if (!id) return;
-  const content = document.getElementById('driveContent');
-  content.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try {
-    const res = await fetch(`${API}/api/files/${encodeURIComponent(id)}`, { headers: apiHeaders() });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    content.dataset.files = JSON.stringify(data.files);
-    renderFiles(data.files, data.title);
-    document.getElementById('status').textContent = `${data.files.length} files`;
-  } catch (e) {
-    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠</div><div class="empty-title">Error</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
-
-function renderFiles(files, title='') {
-  const container = document.getElementById('driveContent');
-  if (!files.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No files</div></div>'; return; }
-  
-  if (currentView === 'grid') {
-    container.innerHTML = `<div class="grid">${files.map(f=>`
-      <div class="card" onclick="window.open('${f.url}','_blank')">
-        <div class="card-icon">${getIcon(f.name)}</div>
-        <div class="card-title" title="${f.name}">${f.name}</div>
-        <div class="card-meta"><span>${formatSize(f.size)}</span><span>${f.format||''}</span></div>
-        <div class="card-actions"><div class="action-btn" onclick="event.stopPropagation();navigator.clipboard.writeText('${f.url}');showToast('Link copied')">⧉</div></div>
-      </div>`).join('')}</div>`;
-  } else {
-    container.innerHTML = `<div class="list">${files.map(f=>`
-      <div class="list-item" onclick="window.open('${f.url}','_blank')">
-        <div class="list-icon">${getIcon(f.name)}</div>
-        <div class="list-info"><div class="list-title">${f.name}</div><div class="list-meta">${formatSize(f.size)} • ${f.format||'file'}</div></div>
-      </div>`).join('')}</div>`;
-  }
-}
-
-async function loadMyItems() {
-  const container = document.getElementById('myContent');
-  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  try {
-    const res = await fetch(`${API}/api/myitems`, { headers: apiHeaders() });
-    const data = await res.json();
-    myItemsCache = data.items;
-    if (!data.items.length) {
-      container.innerHTML = '<div class="empty"><div class="empty-icon">📤</div><div class="empty-title">No uploads yet</div><div class="empty-text">Go to Upload tab to add your first file</div></div>'; return;
-    }
-    container.innerHTML = `<div class="grid">${data.items.map(item=>`
-      <div class="card" onclick="document.getElementById('searchInput').value='${item.identifier}';switchTab('drive');searchDrive()">
-        <div class="card-icon">📁</div>
-        <div class="card-title" title="${item.title}">${item.title}</div>
-        <div class="card-meta"><span>${new Date(item.date).toLocaleDateString()}</span><span>${formatSize(item.size)}</span></div>
-      </div>`).join('')}</div>`;
-    document.getElementById('status').textContent = `${data.total} items`;
-  } catch (e) {
-    container.innerHTML = `<div class="empty"><div class="empty-title">Failed to load</div><div class="empty-text">${e.message}</div></div>`;
-  }
-}
-
-// Upload handling
-const dropZone = document.getElementById('dropZone');
-['dragenter','dragover'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.add('dragover')}));
-['dragleave','drop'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.remove('dragover')}));
-dropZone.addEventListener('drop',ev=>handleFiles(ev.dataTransfer.files));
-
-async function handleFiles(files) {
-  for (const file of files) await uploadFile(file);
-}
-async function uploadFile(file) {
-  const id = document.getElementById('customId').value.trim();
-  const queue = document.getElementById('uploadQueue');
-  const item = document.createElement('div'); item.className='list-item'; item.style.marginBottom='8px';
-  item.innerHTML = `<div class="list-icon">⬆</div><div class="list-info"><div class="list-title">${file.name}</div><div class="list-meta">Uploading...</div></div>`;
-  queue.prepend(item);
-  
-  const form = new FormData(); form.append('file', file); if(id) form.append('identifier', id);
-  try {
-    const res = await fetch(`${API}/api/upload`, { method:'POST', headers: apiHeaders(), body: form });
-    const data = await res.json();
-    if (data.success) {
-      item.querySelector('.list-meta').textContent = `Uploaded to ${data.identifier}`;
-      item.querySelector('.list-icon').textContent = '✓';
-      showToast(`Uploaded ${file.name}`, 'success'); myItemsCache = null;
-    } else throw new Error(data.error);
-  } catch (e) {
-    item.querySelector('.list-meta').textContent = 'Failed: '+e.message; item.querySelector('.list-icon').textContent = '✗';
-    showToast('Upload failed', 'error');
-  }
-}
+async function loadDrive(){const id=searchInput.value.trim();if(!id)return;driveGrid.innerHTML='<div class="loading"><div class="spinner"></div></div>';try{const r=await fetch(`${API}/api/files/${id}`,{headers:apiH()});const d=await r.json();status.textContent=d.files.length+' files';driveGrid.innerHTML=`<div class="grid">${d.files.map(f=>`<div class="card" onclick="window.open('${f.url}')"><div class="card-icon">${icon(f.name)}</div><div class="card-title" title="${f.name}">${f.name}</div><div class="card-meta">${fmt(f.size)}</div></div>`).join('')}</div>`}catch(e){driveGrid.innerHTML=`<div class="empty">Error: ${e.message}</div>`}}
+async function loadMy(){myGrid.innerHTML='<div class="loading"><div class="spinner"></div></div>';try{const r=await fetch(`${API}/api/myitems`,{headers:apiH()});const d=await r.json();myGrid.innerHTML=`<div class="grid">${d.items.map(i=>`<div class="card" onclick="searchInput.value='${i.identifier}';goPage('drive');loadDrive()"><div class="card-icon">📁</div><div class="card-title">${i.title}</div><div class="card-meta">${new Date(i.date).toLocaleDateString()}</div></div>`).join('')}</div>`;status.textContent=d.total+' items'}catch(e){myGrid.innerHTML='<div class="empty">Failed to load</div>'}}
+async function uploadFiles(files){for(const f of files){const item=document.createElement('div');item.className='list-item';item.innerHTML=`<div>⬆</div><div style="flex:1"><div>${f.name}</div><div style="font-size:12px;color:var(--muted)">Uploading...</div></div>`;uploadList.prepend(item);const fd=new FormData();fd.append('file',f);const cid=customId.value.trim();if(cid)fd.append('identifier',cid);try{const r=await fetch(`${API}/api/upload`,{method:'POST',headers:apiH(),body:fd});const d=await r.json();item.querySelector('div:last-child div:last-child').textContent=d.success?'Done: '+d.identifier:'Failed';showToast(d.success?'Uploaded':'Failed')}catch(e){item.querySelector('div:last-child div:last-child').textContent='Error'}}}
+async function doSearch(){const q=globalSearch.value.trim();if(!q)return;searchResults.innerHTML='<div class="loading"><div class="spinner"></div></div>';const r=await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`,{headers:apiH()});const d=await r.json();searchResults.innerHTML=`<div class="grid">${d.items.map(i=>`<div class="card" onclick="searchInput.value='${i.identifier}';goPage('drive');loadDrive()"><div class="card-icon">📁</div><div class="card-title">${i.title||i.identifier}</div></div>`).join('')}</div>`}
 </script>
 </body>
 </html>
