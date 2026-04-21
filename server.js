@@ -1,9 +1,7 @@
-/**
- * Archive Drive v6.3 - Instant Uploads + URL Upload
- */
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
+const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -11,158 +9,247 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const CONFIG = {
-  IA_USERNAME: process.env.IA_USERNAME || 'namaycb',
-  IA_ACCESS_KEY: process.env.IA_ACCESS_KEY,
-  IA_SECRET_KEY: process.env.IA_SECRET_KEY,
-  ADMIN_USER: process.env.ADMIN_USER || 'admin',
-  ADMIN_PASS: process.env.ADMIN_PASS || 'Admin@2330',
-};
+const IA_USERNAME = process.env.IA_USERNAME || 'demo';
+const IA_ACCESS_KEY = process.env.IA_ACCESS_KEY || '';
+const IA_SECRET_KEY = process.env.IA_SECRET_KEY || '';
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'changeme';
+const JWT_SECRET = process.env.JWT_SECRET || ADMIN_PASS + '_archive_drive_secret';
 
-console.log('=== Archive Drive v6.3 ===');
-
-app.use(express.json({limit: '10mb'}));
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
+
+// In-memory recent uploads cache
+let recentUploads = [];
+
+// Simple JWT-like token (no external lib)
+function signToken(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 12 * 3600 * 1000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyToken(token) {
+  try {
+    const [h, b, s] = token.split('.');
+    const expected = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
+    if (s !== expected) return null;
+    const payload = JSON.parse(Buffer.from(b, 'base64url').toString());
+    if (payload.exp < Date.now()) return null;
+    return payload;
+  } catch { return null; }
+}
+
+function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const token = auth.replace('Bearer ', '');
+  const payload = verifyToken(token);
+  if (!payload) return res.status(401).json({ error: 'Unauthorized' });
+  req.user = payload;
   next();
+}
+
+// Multer config - 5GB limit
+const upload = multer({
+  dest: '/tmp',
+  limits: { fileSize: 5 * 1024 * 1024 * 1024 }
 });
 
-const sessions = new Map();
-const recentUploads = []; // INSTANT CACHE
-const upload = multer({ dest: '/tmp/uploads/', limits: { fileSize: 5 * 1024 * 1024 } });
-
-// Auth
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  if (username === CONFIG.ADMIN_USER && password === CONFIG.ADMIN_PASS) {
-    const token = crypto.randomBytes(32).toString('hex');
-    sessions.set(token, { user: username });
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    const token = signToken({ user: username });
     return res.json({ token });
   }
-  res.status(401).json({ error: 'Invalid' });
+  res.status(401).json({ error: 'Invalid credentials' });
 });
 
-const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token ||!sessions.has(token)) return res.status(401).json({ error: 'Unauthorized' });
-  next();
-};
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() });
+});
 
-// Helpers
-function getUrl(id, file) { return `https://archive.org/download/${id}/${encodeURIComponent(file)}`; }
-
-// My Items - MERGES INSTANT CACHE
-app.get('/api/myitems', auth, async (req, res) => {
+app.get('/api/myitems', authMiddleware, async (req, res) => {
   try {
-    const url = `https://archive.org/advancedsearch.php?q=uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&fl[]=date&fl[]=item_size&sort[]=date desc&rows=100&output=json`;
-    const { data } = await axios.get(url, { timeout: 15000 });
-    const iaItems = (data.response?.docs || []).map(d => ({
+    const url = `https://archive.org/advancedsearch.php?q=uploader:${encodeURIComponent(IA_USERNAME)}&fl[]=identifier&fl[]=title&fl[]=description&fl[]=date&fl[]=item_size&fl[]=mediatype&sort[]=addeddate desc&output=json&rows=100`;
+    const iaRes = await axios.get(url, { timeout: 15000 });
+    const docs = iaRes.data?.response?.docs || [];
+    
+    const iaResults = docs.map(d => ({
       identifier: d.identifier,
       title: d.title || d.identifier,
+      description: d.description || '',
       date: d.date,
-      size: d.item_size || 0,
-      source: 'archive'
+      size: d.item_size,
+      mediatype: d.mediatype,
+      instant: false
     }));
 
-    // Merge instant uploads (show first)
-    const all = [...recentUploads,...iaItems];
-    const unique = Array.from(new Map(all.map(i => [i.identifier, i])).values());
+    // Merge with recentUploads
+    const merged = [...recentUploads, ...iaResults];
+    const seen = new Set();
+    const deduped = merged.filter(item => {
+      if (seen.has(item.identifier)) return false;
+      seen.add(item.identifier);
+      return true;
+    }).slice(0, 100);
 
-    res.json({ items: unique.slice(0, 100), total: unique.length });
-  } catch (e) {
-    // If IA fails, still show recent uploads
-    res.json({ items: recentUploads, total: recentUploads.length });
+    res.json({ items: deduped, count: deduped.length });
+  } catch (err) {
+    console.error('myitems error', err.message);
+    // Return cache only on error
+    res.json({ items: recentUploads, count: recentUploads.length, warning: 'IA search failed, showing recent only' });
   }
 });
 
-// Files
-app.get('/api/files/:id', auth, async (req, res) => {
+app.get('/api/files/:id', authMiddleware, async (req, res) => {
   try {
-    const { data } = await axios.get(`https://archive.org/metadata/${req.params.id}`, { timeout: 15000 });
-    const files = (data.files || [])
-     .filter(f => f.source === 'original' &&!f.name.match(/\.(xml|sqlite)$/) &&!f.name.startsWith('__'))
-     .map(f => ({ name: f.name, size: parseInt(f.size) || 0, url: getUrl(req.params.id, f.name) }));
-    res.json({ identifier: req.params.id, files });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const id = req.params.id;
+    const metaUrl = `https://archive.org/metadata/${encodeURIComponent(id)}`;
+    const meta = await axios.get(metaUrl, { timeout: 15000 });
+    const files = meta.data?.files || [];
+    
+    const filtered = files.filter(f => {
+      const name = f.name || '';
+      if (!name) return false;
+      if (name.endsWith('.xml')) return false;
+      if (name.endsWith('.sqlite')) return false;
+      if (name.startsWith('__')) return false;
+      if (name.includes('_meta')) return false;
+      if (name.includes('_files.xml')) return false;
+      if (name === `${id}_files.xml`) return false;
+      return true;
+    }).map(f => ({
+      name: f.name,
+      size: parseInt(f.size) || 0,
+      source: f.source,
+      format: f.format,
+      url: `https://archive.org/download/${id}/${encodeURIComponent(f.name)}`
+    }));
+
+    res.json({ identifier: id, files: filtered, count: filtered.length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch files', details: err.message });
   }
 });
 
-// FILE UPLOAD - INSTANT
-app.post('/api/upload', auth, upload.single('file'), async (req, res) => {
+app.post('/api/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
-    const identifier = req.body.identifier || `${CONFIG.IA_USERNAME}-upload-${Date.now()}`;
-    const filename = req.file.originalname;
-    const buffer = fs.readFileSync(req.file.path);
+    if (!req.file) return res.status(400).json({ error: 'No file' });
+    if (!IA_ACCESS_KEY || !IA_SECRET_KEY) return res.status(500).json({ error: 'IA keys not configured' });
 
-    await axios.put(`https://s3.us.archive.org/${identifier}/${encodeURIComponent(filename)}`, buffer, {
-      headers: {
-        'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
-        'Content-Length': req.file.size,
-        'x-amz-auto-make-bucket': '1',
-        'x-archive-meta01-collection': 'opensource',
-        'x-archive-meta-title': filename,
-        'x-archive-meta-uploader': CONFIG.IA_USERNAME
-      },
-      timeout: 600000
+    const file = req.file;
+    const customId = req.body.identifier?.trim();
+    const identifier = customId || `archive-drive-${Date.now()}`;
+    const filename = file.originalname;
+    const filePath = file.path;
+    const fileSize = file.size;
+
+    const url = `https://s3.us.archive.org/${encodeURIComponent(identifier)}/${encodeURIComponent(filename)}`;
+    
+    const headers = {
+      'Authorization': `LOW ${IA_ACCESS_KEY}:${IA_SECRET_KEY}`,
+      'Content-Length': fileSize,
+      'x-amz-auto-make-bucket': '1',
+      'x-archive-meta01-collection': 'opensource',
+      'x-archive-meta-title': req.body.title || filename,
+      'x-archive-meta-mediatype': 'data',
+      'x-archive-meta-uploader': IA_USERNAME,
+      'x-archive-meta-description': req.body.description || `Uploaded via Archive Drive on ${new Date().toISOString()}`
+    };
+
+    const stream = fs.createReadStream(filePath);
+    await axios.put(url, stream, {
+      headers,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 0
     });
 
-    fs.unlinkSync(req.file.path);
+    // Cleanup
+    fs.unlink(filePath, () => {});
 
-    // ADD TO INSTANT CACHE
-    recentUploads.unshift({
+    const newItem = {
       identifier,
-      title: filename,
+      title: req.body.title || filename,
+      description: headers['x-archive-meta-description'],
       date: new Date().toISOString(),
-      size: req.file.size,
-      source: 'instant'
-    });
-    if (recentUploads.length > 50) recentUploads.pop();
+      size: fileSize,
+      mediatype: 'data',
+      instant: true
+    };
 
-    res.json({ success: true, identifier, filename, size: req.file.size });
-  } catch (e) {
-    if (req.file?.path) fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: e.response?.data || e.message });
+    recentUploads.unshift(newItem);
+    if (recentUploads.length > 50) recentUploads = recentUploads.slice(0, 50);
+
+    res.json({ success: true, identifier, filename, url: `https://archive.org/details/${identifier}` });
+  } catch (err) {
+    console.error('upload error', err.response?.data || err.message);
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    res.status(500).json({ error: 'Upload failed', details: err.response?.data || err.message });
   }
 });
 
-// URL UPLOAD - NEW
-app.post('/api/upload-url', auth, async (req, res) => {
+app.post('/api/upload-url', authMiddleware, async (req, res) => {
   try {
-    const { url, identifier: customId, filename: customName } = req.body;
-    if (!url) return res.status(400).json({ error: 'URL required' });
+    const { url: remoteUrl, filename, identifier: customId, title } = req.body;
+    if (!remoteUrl) return res.status(400).json({ error: 'URL required' });
+    if (!IA_ACCESS_KEY) return res.status(500).json({ error: 'IA keys not configured' });
 
-    const identifier = customId || `${CONFIG.IA_USERNAME}-url-${Date.now()}`;
-    const filename = customName || url.split('/').pop().split('?')[0] || 'file';
-
-    console.log(`[URL] Downloading ${url}`);
-    const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 600000, maxContentLength: 5 * 1024 * 1024 });
-    const buffer = Buffer.from(response.data);
-
-    await axios.put(`https://s3.us.archive.org/${identifier}/${encodeURIComponent(filename)}`, buffer, {
-      headers: {
-        'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
-        'Content-Length': buffer.length,
-        'x-amz-auto-make-bucket': '1',
-        'x-archive-meta01-collection': 'opensource',
-        'x-archive-meta-title': filename,
-        'x-archive-meta-source-url': url
-      }
+    const tmpPath = `/tmp/dl-${Date.now()}`;
+    const writer = fs.createWriteStream(tmpPath);
+    
+    const response = await axios({ method: 'get', url: remoteUrl, responseType: 'stream', timeout: 0 });
+    await new Promise((resolve, reject) => {
+      response.data.pipe(writer);
+      writer.on('finish', resolve);
+      writer.on('error', reject);
     });
 
-    recentUploads.unshift({ identifier, title: filename, date: new Date().toISOString(), size: buffer.length, source: 'instant' });
+    const stats = fs.statSync(tmpPath);
+    const fileSize = stats.size;
+    const finalFilename = filename || path.basename(new URL(remoteUrl).pathname) || 'download';
+    const identifier = customId || `archive-drive-${Date.now()}`;
 
-    res.json({ success: true, identifier, filename, size: buffer.length });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const uploadUrl = `https://s3.us.archive.org/${encodeURIComponent(identifier)}/${encodeURIComponent(finalFilename)}`;
+    const headers = {
+      'Authorization': `LOW ${IA_ACCESS_KEY}:${IA_SECRET_KEY}`,
+      'Content-Length': fileSize,
+      'x-amz-auto-make-bucket': '1',
+      'x-archive-meta01-collection': 'opensource',
+      'x-archive-meta-title': title || finalFilename,
+      'x-archive-meta-mediatype': 'data',
+      'x-archive-meta-uploader': IA_USERNAME
+    };
+
+    const stream = fs.createReadStream(tmpPath);
+    await axios.put(uploadUrl, stream, { headers, maxBodyLength: Infinity, timeout: 0 });
+    fs.unlink(tmpPath, () => {});
+
+    const newItem = {
+      identifier,
+      title: title || finalFilename,
+      date: new Date().toISOString(),
+      size: fileSize,
+      mediatype: 'data',
+      instant: true
+    };
+    recentUploads.unshift(newItem);
+    if (recentUploads.length > 50) recentUploads = recentUploads.slice(0, 50);
+
+    res.json({ success: true, identifier, filename: finalFilename, url: `https://archive.org/details/${identifier}` });
+  } catch (err) {
+    console.error('upload-url error', err.message);
+    res.status(500).json({ error: 'URL upload failed', details: err.message });
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Fallback to SPA
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-app.listen(PORT, '0.0.0.0', () => console.log(`✓ Running on ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Archive Drive running on http://0.0.0.0:${PORT}`);
+});
