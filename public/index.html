@@ -1,171 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Archive Drive - Internet Archive Uploader</title>
-  <style>
-    :root { --bg: #0a0a0a; --card: #111111; --border: #222; --text: #e5e5e5; --muted: #888; --primary: #0066cc; --primary-hover: #0052a3; --success: #0a3d0a; --error: #3d0a0a; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; line-height: 1.5; }
-   .container { width: 100%; max-width: 520px; }
-   .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 48px 40px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); }
-   .logo { font-size: 56px; text-align: center; margin-bottom: 16px; filter: grayscale(0.2); }
-    h1 { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; letter-spacing: -0.5px; }
-   .subtitle { color: var(--muted); text-align: center; margin-bottom: 36px; font-size: 14px; }
-   .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
-    input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 14px 16px; background: #0f0f0f; border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 15px; transition: all 0.2s; }
-    input:focus { outline: none; border-color: var(--primary); background: #141414; box-shadow: 0 0 0 3px rgba(0,102,204,0.1); }
-    input[type="file"] { padding: 12px; cursor: pointer; }
-    input[type="file"]::file-selector-button { background: #1a1a1a; border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; margin-right: 12px; cursor: pointer; font-size: 13px; }
-    button { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
-    button:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,102,204,0.3); }
-    button:active:not(:disabled) { transform: translateY(0); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-   .result { margin-top: 24px; padding: 18px; border-radius: 12px; font-size: 14px; display: none; word-break: break-word; }
-   .result.show { display: block; animation: slideIn 0.3s ease; }
-   .result.success { background: var(--success); border: 1px solid #1a5a1a; color: #90ee90; }
-   .result.error { background: var(--error); border: 1px solid #5a1a1a; color: #ff9090; }
-   .result.loading { background: #0f172a; border: 1px solid #1e293b; color: #94a3b8; }
-    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    a { color: #60a5fa; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-   .hidden { display: none!important; }
-   .file-info { font-size: 12px; color: var(--muted); margin-top: 4px; }
-   .logout { position: absolute; top: 20px; right: 20px; width: auto; padding: 8px 16px; font-size: 13px; background: transparent; border: 1px solid var(--border); }
-   .logout:hover { background: #1a1a1a; transform: none; box-shadow: none; }
-    @media (max-width: 600px) {.card { padding: 32px 24px; } }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive Drive v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui;background:#0a0a0a;color:#e5e5e5;min-height:100vh;padding:20px}
+.container{max-width:900px;margin:0 auto}.card{background:#111;border:1px solid #222;border-radius:16px;padding:24px;margin-bottom:20px}
+h1{font-size:24px;margin-bottom:20px;text-align:center}h2{font-size:16px;margin-bottom:12px;color:#aaa}
+.tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid #222}.tab{padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;color:#888}.tab.active{color:#fff;border-color:#0066cc}
+.tab-content{display:none}.tab-content.active{display:block}
+input,button,select{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #2a2a2a;background:#1a1a1a;color:#fff;font-size:14px}
+button{background:#0066cc;border:none;font-weight:600;cursor:pointer}button:hover{background:#0052a3}button:disabled{opacity:.5}
+button.small{width:auto;padding:6px 12px;font-size:12px;margin:0}
+.progress{height:6px;background:#222;border-radius:3px;overflow:hidden;margin:10px 0;display:none}.progress-bar{height:100%;background:#0066cc;width:0%;transition:width.2s}
+.result{margin-top:12px;padding:12px;border-radius:8px;font-size:13px;display:none}.result.show{display:block}.ok{background:#0f1f0f;color:#9f9}.err{background:#1f0f0f;color:#f99}
+.file-list{max-height:400px;overflow-y:auto}.item{padding:12px;border:1px solid #222;border-radius:8px;margin:6px 0;background:#0f0f0f;cursor:pointer}.item:hover{background:#1a1a1a}
+.item-title{font-weight:600}.item-meta{font-size:12px;color:#888;margin-top:4px}
+.file{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #222}.file:last-child{border:none}
+.file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px;font-size:13px}
+.hidden{display:none}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-  <button class="logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
+<div class="container">
+<div class="card" id="loginCard">
+<h1>📦 Archive Drive v2</h1>
+<input id="u" placeholder="Username" value="admin">
+<input id="p" type="password" placeholder="Password" value="Admin@2330">
+<button onclick="login()">Login</button>
+</div>
 
-  <div class="container">
-    <div class="card">
-      <div class="logo">📦</div>
-      <h1>Archive Drive</h1>
-      <p class="subtitle">Direct uploader for archive.org</p>
+<div id="app" class="hidden">
+<div class="card">
+<div class="tabs">
+<div class="tab active" onclick="switchTab('upload')">Upload</div>
+<div class="tab" onclick="switchTab('remote')">Remote URL</div>
+<div class="tab" onclick="switchTab('browse')">Browse</div>
+</div>
 
-      <div id="loginView">
-        <div class="form-group">
-          <label>Username</label>
-          <input id="username" type="text" placeholder="admin" value="admin" autocomplete="username">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input id="password" type="password" placeholder="••••••••" value="Admin@2330" autocomplete="current-password">
-        </div>
-        <button id="loginBtn" onclick="login()">Sign In</button>
-        <div id="loginError" class="result error"></div>
-      </div>
+<div id="upload" class="tab-content active">
+<h2>Upload Files (up to 10 at once)</h2>
+<input type="file" id="files" multiple>
+<input id="upId" placeholder="Identifier (optional)">
+<button id="upBtn" onclick="uploadFiles()">Upload</button>
+<div class="progress" id="prog"><div class="progress-bar" id="progBar"></div></div>
+<div id="upOut" class="result"></div>
+</div>
 
-      <div id="uploadView" class="hidden">
-        <div class="form-group">
-          <label>Select File</label>
-          <input type="file" id="fileInput">
-          <div class="file-info" id="fileInfo"></div>
-        </div>
-        <div class="form-group">
-          <label>Identifier (optional)</label>
-          <input id="identifier" type="text" placeholder="my-upload-name">
-        </div>
-        <button id="uploadBtn" onclick="upload()">Upload to Archive.org</button>
-        <div id="result" class="result"></div>
-      </div>
-    </div>
-  </div>
+<div id="remote" class="tab-content">
+<h2>Upload from URL</h2>
+<input id="remoteUrl" placeholder="https://example.com/file.zip">
+<div class="grid">
+<input id="remoteId" placeholder="Identifier">
+<input id="remoteName" placeholder="Filename (optional)">
+</div>
+<button onclick="uploadRemote()">Fetch & Upload</button>
+<div id="remoteOut" class="result"></div>
+</div>
 
-  <script>
-    const $ = id => document.getElementById(id);
-    let isUploading = false;
+<div id="browse" class="tab-content">
+<h2>Your Archive Items</h2>
+<button onclick="loadItems()" style="margin-bottom:12px">Refresh</button>
+<div id="items" class="file-list"></div>
+<div id="filesView" class="hidden">
+<button class="small" onclick="backToItems()">← Back</button>
+<h2 id="filesTitle" style="margin:12px 0"></h2>
+<div id="filesList" class="file-list"></div>
+</div>
+</div>
 
-    $('fileInput').addEventListener('change', e => {
-      const f = e.target.files[0];
-      $('fileInfo').textContent = f? `${f.name} • ${(f.size/1024/1024).toFixed(2)} MB` : '';
-    });
+</div>
+</div>
+</div>
 
-    $('password').addEventListener('keypress', e => e.key === 'Enter' && login());
+<script>
+let currentItem = null;
 
-    async function login() {
-      const btn = $('loginBtn');
-      const err = $('loginError');
-      err.classList.remove('show');
+async function login(){
+ const r = await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u.value,pass:p.value})});
+ if(r.ok){loginCard.classList.add('hidden');app.classList.remove('hidden');loadItems()}
+ else alert('Invalid')
+}
 
-      btn.disabled = true;
-      btn.textContent = 'Signing in...';
+function switchTab(name){
+ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+ event.target.classList.add('active');
+ document.getElementById(name).classList.add('active');
+}
 
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: $('username').value, pass: $('password').value })
-        });
+async function uploadFiles(){
+ const files = document.getElementById('files').files;
+ if(!files.length) return alert('Select files');
 
-        if (res.ok) {
-          $('loginView').classList.add('hidden');
-          $('uploadView').classList.remove('hidden');
-          $('logoutBtn').classList.remove('hidden');
-        } else {
-          const data = await res.json();
-          err.textContent = data.error || 'Login failed';
-          err.classList.add('show');
-        }
-      } catch (e) {
-        err.textContent = 'Connection error';
-        err.classList.add('show');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Sign In';
-      }
-    }
+ upBtn.disabled = true;
+ prog.style.display = 'block';
+ progBar.style.width = '0%';
+ upOut.className = 'result'; upOut.classList.remove('show');
 
-    async function logout() {
-      await fetch('/api/logout', { method: 'POST' });
-      location.reload();
-    }
+ const fd = new FormData();
+ for(let f of files) fd.append('files', f);
+ fd.append('identifier', upId.value);
 
-    async function upload() {
-      if (isUploading) return;
-      const file = $('fileInput').files[0];
-      if (!file) return alert('Please select a file');
+ const xhr = new XMLHttpRequest();
+ xhr.upload.onprogress = e => {
+   if(e.lengthComputable) progBar.style.width = Math.round(e.loaded/e.total*100) + '%';
+ };
+ xhr.onload = () => {
+   prog.style.display = 'none';
+   upBtn.disabled = false;
+   const data = JSON.parse(xhr.responseText);
+   upOut.className = 'result ok show';
+   upOut.innerHTML = data.results.map(r => `✅ ${r.file} → <a href="${r.url}" target="_blank">${r.id}</a>`).join('<br>');
+   loadItems();
+ };
+ xhr.onerror = () => { prog.style.display='none'; upBtn.disabled=false; upOut.className='result err show'; upOut.innerHTML='Upload failed' };
+ xhr.open('POST', '/api/upload');
+ xhr.send(fd);
+}
 
-      isUploading = true;
-      const btn = $('uploadBtn');
-      const result = $('result');
+async function uploadRemote(){
+ if(!remoteUrl.value) return alert('Enter URL');
+ remoteOut.className='result'; remoteOut.classList.remove('show');
+ const r = await fetch('/api/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:remoteUrl.value,identifier:remoteId.value,filename:remoteName.value})});
+ const j = await r.json();
+ remoteOut.classList.add('show');
+ if(r.ok){remoteOut.className='result ok show';remoteOut.innerHTML=`✅ ${j.filename} → <a href="${j.url}" target="_blank">${j.id}</a>`;loadItems()}
+ else{remoteOut.className='result err show';remoteOut.innerHTML='❌ '+j.error}
+}
 
-      btn.disabled = true;
-      btn.textContent = 'Uploading...';
-      result.className = 'result loading show';
-      result.innerHTML = `⏳ Uploading <strong>${file.name}</strong>...<br><small>This may take a minute for large files</small>`;
+async function loadItems(){
+ items.innerHTML = 'Loading...';
+ const r = await fetch('/api/items');
+ const j = await r.json();
+ items.innerHTML = j.items.map(it => `
+   <div class="item" onclick="showFiles('${it.identifier}')">
+     <div class="item-title">${it.identifier}</div>
+     <div class="item-meta">${Math.round((it.item_size||0)/1024/1024)} MB • ${it.downloads||0} downloads</div>
+   </div>
+ `).join('') || 'No items yet';
+}
 
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('identifier', $('identifier').value);
+async function showFiles(id){
+ currentItem = id;
+ items.parentElement.classList.add('hidden');
+ filesView.classList.remove('hidden');
+ filesTitle.textContent = id;
+ filesList.innerHTML = 'Loading...';
+ const r = await fetch(`/api/files/${id}`);
+ const j = await r.json();
+ filesList.innerHTML = j.files.map(f => `
+   <div class="file">
+     <span class="file-name">${f.name} (${Math.round(f.size/1024)} KB)</span>
+     <a href="${f.url}" target="_blank"><button class="small">Open</button></a>
+     <button class="small" onclick="delFile('${id}','${f.name.replace(/'/g,"\\'")}')">Del</button>
+   </div>
+ `).join('');
+}
 
-      try {
-        const res = await fetch('/api/upload/new', { method: 'POST', body: fd });
-        const data = await res.json();
+function backToItems(){
+ filesView.classList.add('hidden');
+ items.parentElement.classList.remove('hidden');
+}
 
-        if (res.ok) {
-          result.className = 'result success show';
-          result.innerHTML = `✅ <strong>Upload successful!</strong><br><br>Identifier: <code>${data.identifier}</code><br>File: ${data.filename}<br><br><a href="${data.url}" target="_blank" rel="noopener">View on Archive.org →</a>`;
-          $('fileInput').value = '';
-          $('fileInfo').textContent = '';
-          $('identifier').value = '';
-        } else {
-          result.className = 'result error show';
-          result.innerHTML = `❌ <strong>Upload failed</strong><br><br>${data.error}<br><small>${data.details || ''}</small>`;
-        }
-      } catch (e) {
-        result.className = 'result error show';
-        result.innerHTML = `❌ <strong>Network error</strong><br><br>${e.message}`;
-      } finally {
-        isUploading = false;
-        btn.disabled = false;
-        btn.textContent = 'Upload to Archive.org';
-      }
-    }
-  </script>
+async function delFile(id,name){
+ if(!confirm('Delete '+name+'?')) return;
+ await fetch(`/api/files/${id}/${encodeURIComponent(name)}`,{method:'DELETE'});
+ showFiles(id);
+}
+</script>
 </body>
 </html>
