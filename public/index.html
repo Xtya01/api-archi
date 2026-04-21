@@ -1,476 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Playables SDK -->
-<script>// Playables SDK v1.0.0
-// Game lifecycle bridge: rAF-based game-ready detection + event communication
-(function() {
-  'use strict';
-
-  // Idempotency: skip if already initialized (e.g., server-side injection
-  // followed by client-side inject-javascript via the Bloks webview component).
-  if (window.playablesSDK) return;
-
-  var HANDLER_NAME = 'playablesGameEventHandler';
-  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
-  var RAF_FRAME_THRESHOLD = 3;
-
-  var gameReadySent = false;
-  var firstInteractionSent = false;
-  var errorSent = false;
-  var frameCount = 0;
-  var originalRAF = window.requestAnimationFrame;
-
-  // --- Transport Layer ---
-
-  function hasIOSBridge() {
-    return !!(window.webkit &&
-              window.webkit.messageHandlers &&
-              window.webkit.messageHandlers[HANDLER_NAME]);
-  }
-
-  function hasAndroidBridge() {
-    return !!(window[ANDROID_BRIDGE_NAME] &&
-              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
-  }
-
-  function isInIframe() {
-    return !!(window.parent && window.parent !== window);
-  }
-
-  function sendEvent(eventName, payload) {
-    var message = {
-      type: eventName,
-      payload: payload || {},
-      timestamp: Date.now()
-    };
-
-    if (hasIOSBridge()) {
-      try {
-        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
-      } catch (e) { /* ignore */ }
-      return;
-    }
-
-    if (hasAndroidBridge()) {
-    try {
-      var p = payload || {};
-      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
-      window[ANDROID_BRIDGE_NAME].postEvent(
-        eventName,
-        JSON.stringify(p)
-      );
-    } catch (e) { /* ignore */ }
-    return;
-  }
-
-    if (isInIframe()) {
-      try {
-        window.parent.postMessage(message, '*');
-      } catch (e) { /* ignore */ }
-      return;
-    }
-  }
-
-  // --- rAF Game-Ready Detection ---
-
-  function onFrame() {
-    if (gameReadySent) return;
-
-    frameCount++;
-    if (frameCount >= RAF_FRAME_THRESHOLD) {
-      gameReadySent = true;
-      sendEvent('game_ready', {
-        frame_count: frameCount,
-        detected_at: Date.now()
-      });
-      return;
-    }
-
-    originalRAF.call(window, onFrame);
-  }
-
-  if (originalRAF) {
-    window.requestAnimationFrame = function(callback) {
-      if (!gameReadySent) {
-        return originalRAF.call(window, function(timestamp) {
-          frameCount++;
-          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
-            gameReadySent = true;
-            sendEvent('game_ready', {
-              frame_count: frameCount,
-              detected_at: Date.now()
-            });
-          }
-          callback(timestamp);
-        });
-      }
-      return originalRAF.call(window, callback);
-    };
-  }
-
-  // --- First User Interaction Detection ---
-
-  function setupFirstInteractionDetection() {
-    var events = ['touchstart', 'mousedown', 'keydown'];
-
-    function onFirstInteraction() {
-      if (firstInteractionSent) return;
-      firstInteractionSent = true;
-      sendEvent('user_interaction_start', null);
-
-      for (var i = 0; i < events.length; i++) {
-        document.removeEventListener(events[i], onFirstInteraction, true);
-      }
-    }
-
-    for (var i = 0; i < events.length; i++) {
-      document.addEventListener(events[i], onFirstInteraction, true);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
-  } else {
-    setupFirstInteractionDetection();
-  }
-
-  // --- Auto Error Capture ---
-
-  window.addEventListener('error', function(event) {
-    if (errorSent) return;
-    errorSent = true;
-    sendEvent('error', {
-      message: event.message || 'Unknown error',
-      source: event.filename || '',
-      lineno: event.lineno || 0,
-      colno: event.colno || 0,
-      auto_captured: true
-    });
-  });
-
-  window.addEventListener('unhandledrejection', function(event) {
-    if (errorSent) return;
-    errorSent = true;
-    var reason = event.reason;
-    sendEvent('error', {
-      message: (reason instanceof Error) ? reason.message : String(reason),
-      type: 'unhandled_promise_rejection',
-      auto_captured: true
-    });
-  });
-
-  // --- Public API ---
-
-  window.playablesSDK = {
-    complete: function(score) {
-      sendEvent('game_ended', {
-        score: score,
-        completed: true
-      });
-    },
-
-    error: function(message) {
-      if (errorSent) return;
-      errorSent = true;
-      sendEvent('error', {
-        message: message || 'Unknown error',
-        auto_captured: false
-      });
-    },
-
-    sendEvent: function(eventName, payload) {
-      if (!eventName || typeof eventName !== 'string') return;
-      sendEvent(eventName, payload);
-    }
-  };
-
-  // Kick off rAF detection in case no game code calls rAF immediately
-  if (originalRAF) {
-    originalRAF.call(window, onFrame);
-  }
-})();</script>
-<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Archive Drive v6.2</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
 <style>
-:root{--bg:#0a0e14;--card:#141b23;--accent:#3b82f6;--text:#e2e8f0;--muted:#64748b;--border:#1e293b}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
-#login{display:flex;align-items:center;justify-content:center;height:100vh;background:linear-gradient(135deg,#0a0e14 0%,#1e293b 100%)}
-.login-box{background:var(--card);padding:40px;border-radius:16px;border:1px solid var(--border);width:90%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
-.login-box h1{margin-bottom:24px;text-align:center;font-size:24px}
-.login-box input{width:100%;padding:12px 16px;margin:8px 0;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px}
-.login-box button{width:100%;padding:12px;margin-top:16px;background:var(--accent);border:0;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-size:15px}
-.login-box button:hover{opacity:0.9}
-#app{display:flex;height:100vh}
-aside{width:240px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column}
-.logo{padding:20px;font-weight:700;font-size:18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.logo i{color:var(--accent)}
-.nav{flex:1;padding:12px}
-.nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;cursor:pointer;margin:4px 0;color:var(--muted);transition:all 0.2s}
-.nav-item:hover,.nav-item.active{background:#0f172a;color:var(--text)}
-.nav-item i{width:20px;text-align:center}
-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.header{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--card)}
-.header h2{font-size:18px;font-weight:600}
-.tab{display:none;flex:1;overflow:auto;padding:24px}
-.tab.active{display:block}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+:root{--bg:#0a0e14;--card:#141b23;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--danger:#ef4444}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.hidden{display:none!important}
+
+/* Login */
+#login{height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,#1e293b 0%,#0a0e14 100%)}
+.login-box{background:var(--card);padding:40px;border-radius:16px;width:100%;max-width:360px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-box h1{font-size:24px;margin-bottom:8px;background:linear-gradient(135deg,var(--primary),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.login-box p{color:var(--muted);font-size:14px;margin-bottom:24px}
+input{width:100%;padding:12px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;transition:border .2s}
+input:focus{outline:none;border-color:var(--primary)}
+button{width:100%;padding:12px;background:var(--primary);border:0;border-radius:8px;color:#fff;font-weight:500;cursor:pointer;transition:opacity .2s;font-size:14px}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+.error{color:var(--danger);font-size:13px;margin-top:8px;min-height:18px}
+
+/* App */
+#app{height:100vh;display:flex;flex-direction:column}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;gap:8px}
+.logo{font-weight:600;font-size:18px;margin-right:24px;display:flex;align-items:center;gap:8px}
+.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.nav-tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--muted);transition:all .2s;user-select:none}
+.nav-tab:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.nav-tab.active{background:var(--primary);color:#fff}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--muted)}
+
+/* Main */
+main{flex:1;overflow:auto;padding:24px;max-width:1400px;width:100%;margin:0 auto}
 .toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.toolbar input{flex:1;min-width:200px;padding:10px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text)}
-.btn{padding:10px 16px;background:var(--accent);border:0;border-radius:8px;color:#fff;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:8px}
-.btn.secondary{background:#1e293b}
-.btn:hover{opacity:0.9}
-.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.file-card{background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:16px;position:relative;transition:transform 0.2s}
-.file-card:hover{transform:translateY(-2px);border-color:var(--accent)}
-.file-icon{font-size:32px;margin-bottom:12px;color:var(--accent)}
-.file-name{font-weight:500;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-meta{font-size:12px;color:var(--muted);display:flex;gap:12px}
-.file-menu{position:absolute;top:12px;right:12px;cursor:pointer;padding:4px 8px;border-radius:6px}
-.file-menu:hover{background:#1e293b}
-.menu{position:absolute;right:0;top:28px;background:var(--card);border:1px solid var(--border);border-radius:8px;min-width:160px;z-index:10;display:none;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-.menu.show{display:block}
-.menu-item{padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px}
-.menu-item:hover{background:#0f172a}
-.menu-item i{width:16px}
-.empty{text-align:center;padding:60px 20px;color:var(--muted)}
-.empty i{font-size:48px;margin-bottom:16px;opacity:0.5}
-.upload-area{border:2px dashed var(--border);border-radius:12px;padding:60px 20px;text-align:center;cursor:pointer;transition:all 0.2s}
-.upload-area:hover,.upload-area.dragover{border-color:var(--accent);background:#0f172a}
-.upload-area i{font-size:48px;color:var(--accent);margin-bottom:16px}
-.progress{height:6px;background:#0f172a;border-radius:3px;overflow:hidden;margin-top:16px;display:none}
-.progress-bar{height:100%;background:var(--accent);width:0%;transition:width 0.3s}
-.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.status-card{background:#0f172a;border:1px solid var(--border);border-radius:10px;padding:18px}
-.status-card h3{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:15px}
-.status-card .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500;margin-top:8px}
-.badge.green{background:rgba(34,197,94,0.2);color:#22c55e}
-.badge.gray{background:rgba(100,116,139,0.2);color:var(--muted)}
-.badge.blue{background:rgba(59,130,246,0.2);color:var(--accent)}
-#viewer{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
-.viewer-content{width:100%;max-width:1200px;max-height:90vh;background:#000;border-radius:12px;overflow:hidden;position:relative}
-.viewer-close{position:absolute;top:16px;right:16px;z-index:10;background:rgba(0,0,0,0.7);border:0;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px}
-.viewer-body{width:100%;height:80vh;display:flex;align-items:center;justify-content:center}
-.viewer-body video,.viewer-body img{max-width:100%;max-height:100%}
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:8px;z-index:50;justify-content:space-around}
-.mobile-nav .nav-item{flex-direction:column;padding:8px;font-size:11px;gap:4px}
-@media(max-width:768px){
-  aside{display:none}
-  .mobile-nav{display:flex}
-  main{padding-bottom:70px}
-  .file-grid{grid-template-columns:1fr}
-  .header{padding:12px 16px}
-  .tab{padding:16px}
-}
+.search-box{flex:1;min-width:300px;position:relative}
+.search-box input{padding-left:40px;margin:0}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.view-toggle{display:flex;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:2px}
+.view-btn{padding:8px 12px;background:transparent;border:0;color:var(--muted);cursor:pointer;border-radius:6px;font-size:13px}
+.view-btn.active{background:var(--primary);color:#fff}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.card-icon{width:48px;height:48px;background:#0f172a;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px}
+.card-title{font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{font-size:12px;color:var(--muted);display:flex;gap:12px}
+.card-actions{position:absolute;top:12px;right:12px;opacity:0;transition:opacity .2s}
+.card:hover .card-actions{opacity:1}
+.action-btn{width:28px;height:28px;background:#0f172a;border:1px solid var(--border);border-radius:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;margin-left:4px;font-size:14px}
+.action-btn:hover{background:var(--primary);border-color:var(--primary)}
+
+/* List view */
+.list-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .2s}
+.list-item:hover{border-color:var(--primary);background:rgba(59,130,246,.05)}
+.list-icon{font-size:20px;width:32px;text-align:center}
+.list-info{flex:1;min-width:0}
+.list-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-meta{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Upload */
+.upload-area{border:2px dashed var(--border);border-radius:12px;padding:60px 20px;text-align:center;background:var(--card);cursor:pointer;transition:all .2s;margin-bottom:24px}
+.upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:rgba(59,130,246,.05)}
+.upload-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+.upload-text{font-size:16px;margin-bottom:8px}
+.upload-hint{font-size:13px;color:var(--muted)}
+.progress-bar{height:4px;background:#0f172a;border-radius:2px;overflow:hidden;margin-top:16px;display:none}
+.progress-fill{height:100%;background:var(--primary);width:0%;transition:width .3s}
+
+/* Empty state */
+.empty{padding:80px 20px;text-align:center;color:var(--muted)}
+.empty-icon{font-size:64px;margin-bottom:16px;opacity:.3}
+.empty-title{font-size:18px;margin-bottom:8px;color:var(--text)}
+.empty-text{font-size:14px}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);padding:12px 20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-left:3px solid var(--success)}
+.toast.error{border-left:3px solid var(--danger)}
 </style>
 </head>
 <body>
+
+<!-- Login -->
 <div id="login">
   <div class="login-box">
-    <h1><i class="fa-solid fa-cloud-arrow-up"></i> Archive Drive</h1>
-    <input id="user" placeholder="Username" value="admin">
-    <input id="pass" type="password" placeholder="Password" value="Admin@2330">
-    <button onclick="login()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
-    <p id="loginErr" style="color:#ef4444;margin-top:12px;text-align:center;font-size:13px"></p>
+    <h1>Archive Drive</h1>
+    <p>Private cloud storage v6.2</p>
+    <input id="user" type="text" placeholder="Username" value="admin" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" value="Admin@2330" autocomplete="current-password">
+    <button id="loginBtn" onclick="login()">Sign In</button>
+    <div id="loginErr" class="error"></div>
   </div>
 </div>
 
-<div id="app">
-  <aside>
-    <div class="logo"><i class="fa-solid fa-database"></i> Archive Drive</div>
-    <div class="nav">
-      <div class="nav-item active" onclick="switchTab('drive',this)"><i class="fa-solid fa-folder"></i><span>Drive</span></div>
-      <div class="nav-item" onclick="switchTab('upload',this)"><i class="fa-solid fa-upload"></i><span>Upload</span></div>
-      <div class="nav-item" onclick="switchTab('status',this)"><i class="fa-solid fa-chart-simple"></i><span>Status</span></div>
+<!-- App -->
+<div id="app" class="hidden">
+  <header>
+    <div class="logo"><div class="logo-icon">A</div>Archive Drive</div>
+    <div class="nav-tab active" data-tab="drive" onclick="switchTab('drive')">Drive</div>
+    <div class="nav-tab" data-tab="my" onclick="switchTab('my')">My Uploads</div>
+    <div class="nav-tab" data-tab="upload" onclick="switchTab('upload')">Upload</div>
+    <div class="header-right">
+      <span id="status">Ready</span>
+      <span style="cursor:pointer" onclick="logout()">Logout</span>
     </div>
-  </aside>
+  </header>
+
   <main>
-    <div class="header">
-      <h2 id="headerTitle">My Drive</h2>
-      <button class="btn secondary" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-    </div>
-
-    <div id="drive" class="tab active">
-      <div class="card">
-        <div class="toolbar">
-          <input id="identifier" placeholder="Archive.org identifier (e.g. namaycb-remote-...)" />
-          <button class="btn" onclick="loadFiles()"><i class="fa-solid fa-rotate"></i> Load</button>
+    <!-- Drive Tab -->
+    <div id="tab-drive">
+      <div class="toolbar">
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input id="searchInput" placeholder="Enter identifier or search..." onkeypress="if(event.key==='Enter')searchDrive()">
         </div>
-        <div id="fileGrid" class="file-grid"></div>
-        <div id="emptyDrive" class="empty" style="display:none">
-          <i class="fa-solid fa-folder-open"></i>
-          <p>No files found. Enter an identifier above.</p>
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setView('grid')">⊞ Grid</button>
+          <button class="view-btn" onclick="setView('list')">☰ List</button>
         </div>
       </div>
+      <div id="driveContent"><div class="empty"><div class="empty-icon">📁</div><div class="empty-title">No files loaded</div><div class="empty-text">Enter an identifier above or go to My Uploads</div></div></div>
     </div>
 
-    <div id="upload" class="tab">
-      <div class="card">
-        <h3 style="margin-bottom:16px">Upload to Archive.org</h3>
-        <input id="uploadId" placeholder="Identifier (leave blank for auto)" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);margin-bottom:16px">
-        <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <p><strong>Click to browse</strong> or drag files here</p>
-          <p style="font-size:13px;color:var(--muted);margin-top:8px">Max 5GB per file</p>
-          <input type="file" id="fileInput" hidden multiple onchange="handleFiles(this.files)">
-          <div class="progress" id="progWrap"><div class="progress-bar" id="progBar"></div></div>
-        </div>
-        <div id="uploadList" style="margin-top:20px"></div>
+    <!-- My Uploads Tab -->
+    <div id="tab-my" class="hidden">
+      <div class="toolbar">
+        <h2 style="flex:1">Your Archive.org Items</h2>
+        <button onclick="loadMyItems()" style="width:auto;padding:8px 16px">↻ Refresh</button>
       </div>
+      <div id="myContent"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <div id="status" class="tab">
-      <div class="card">
-        <h3 style="margin-bottom:16px"><i class="fa-solid fa-heart-pulse"></i> CDN Status</h3>
-        <div id="statusGrid" class="status-grid"></div>
-        <div style="margin-top:20px;padding:16px;background:#0f172a;border-radius:8px;font-size:13px;color:var(--muted)">
-          <strong>Note:</strong> Oracle Cache is optional. Add ORACLE_CACHE env var to enable.
-        </div>
+    <!-- Upload Tab -->
+    <div id="tab-upload" class="hidden">
+      <div class="upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">⬆</div>
+        <div class="upload-text">Drop files here or click to browse</div>
+        <div class="upload-hint">Max 5GB per file • Stored on Archive.org</div>
+        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
       </div>
+      <input type="file" id="fileInput" class="hidden" multiple onchange="handleFiles(this.files)">
+      <div style="display:flex;gap:12px;margin-bottom:20px">
+        <input id="customId" placeholder="Custom identifier (optional)" style="flex:1;margin:0">
+        <button onclick="document.getElementById('fileInput').click()" style="width:auto;padding:12px 24px">Select Files</button>
+      </div>
+      <div id="uploadQueue"></div>
     </div>
   </main>
-
-  <div class="mobile-nav">
-    <div class="nav-item active" onclick="switchTab('drive',this)"><i class="fa-solid fa-folder"></i><span>Drive</span></div>
-    <div class="nav-item" onclick="switchTab('upload',this)"><i class="fa-solid fa-upload"></i><span>Upload</span></div>
-    <div class="nav-item" onclick="switchTab('status',this)"><i class="fa-solid fa-chart-simple"></i><span>Status</span></div>
-  </div>
 </div>
 
-<div id="viewer">
-  <div class="viewer-content">
-    <button class="viewer-close" onclick="closeViewer()"><i class="fa-solid fa-xmark"></i></button>
-    <div class="viewer-body" id="viewerBody"></div>
-  </div>
-</div>
+<div id="toast" class="toast"></div>
 
-<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
 <script>
+const API = '';
 let token = localStorage.getItem('ad_token');
-let currentId = localStorage.getItem('ad_last_id') || '';
-let player = null;
-let wtClient = null;
+let currentView = 'grid';
+let myItemsCache = null;
 
-if(token) { document.getElementById('login').style.display='none'; document.getElementById('app').style.display='flex'; document.getElementById('identifier').value=currentId; }
+// Init
+if (token) { document.getElementById('login').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); loadMyItems(); }
+document.getElementById('pass').addEventListener('keypress', e => e.key === 'Enter' && login());
 
-async function login(){
-  const u=document.getElementById('user').value, p=document.getElementById('pass').value;
-  try{
-    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-    const d=await r.json();
-    if(d.token){ token=d.token; localStorage.setItem('ad_token',token); document.getElementById('login').style.display='none'; document.getElementById('app').style.display='flex'; loadFiles(); }
-    else document.getElementById('loginErr').textContent='Invalid login';
-  }catch(e){ document.getElementById('loginErr').textContent='Connection error'; }
-}
-function logout(){ localStorage.removeItem('ad_token'); location.reload(); }
-function switchTab(n,el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById(n).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-  if(el) el.classList.add('active');
-  document.getElementById('headerTitle').textContent = n.charAt(0).toUpperCase()+n.slice(1);
-  if(n==='status') loadStatus();
-  if(n==='drive' && currentId) loadFiles();
-}
-async function api(path,opts={}){ opts.headers={...opts.headers,Authorization:'Bearer '+token}; const r=await fetch(path,opts); if(r.status===401){logout();} return r; }
-
-async function loadFiles(){
-  const id=document.getElementById('identifier').value.trim();
-  if(!id) return;
-  currentId=id; localStorage.setItem('ad_last_id',id);
-  const grid=document.getElementById('fileGrid'); grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
-  try{
-    const r=await api(`/api/files/${encodeURIComponent(id)}`);
-    const d=await r.json();
-    if(!d.files || d.files.length===0){ document.getElementById('emptyDrive').style.display='block'; grid.innerHTML=''; return; }
-    document.getElementById('emptyDrive').style.display='none';
-    grid.innerHTML = d.files.map(f=>{
-      const icon = f.name.match(/\.(mp4|mkv|webm|mov)$/i) ? 'fa-film' : f.name.match(/\.(mp3|wav|flac)$/i) ? 'fa-music' : f.name.match(/\.(jpg|png|gif|webp)$/i) ? 'fa-image' : 'fa-file';
-      const size = f.size>1e9?(f.size/1e9).toFixed(2)+' GB':f.size>1e6?(f.size/1e6).toFixed(1)+' MB':(f.size/1e3).toFixed(0)+' KB';
-      return `<div class="file-card">
-        <div class="file-menu" onclick="toggleMenu(this)"><i class="fa-solid fa-ellipsis"></i>
-          <div class="menu">
-            <div class="menu-item" onclick="openViewer('${f.url}','${f.name}')"><i class="fa-solid fa-eye"></i>View</div>
-            <div class="menu-item" onclick="window.open('${f.directUrl}')"><i class="fa-solid fa-download"></i>Download</div>
-            <div class="menu-item" onclick="p2pStream('${id}','${f.name}')"><i class="fa-solid fa-share-nodes"></i>P2P Stream</div>
-            <div class="menu-item" onclick="navigator.clipboard.writeText('${f.url}')"><i class="fa-solid fa-copy"></i>Copy Link</div>
-          </div>
-        </div>
-        <div class="file-icon"><i class="fa-solid ${icon}"></i></div>
-        <div class="file-name" title="${f.name}">${f.name}</div>
-        <div class="file-meta"><span>${size}</span><span>${f.format}</span></div>
-      </div>`;
-    }).join('');
-  }catch(e){ grid.innerHTML='<div style="color:#ef4444">Error loading files</div>'; }
-}
-function toggleMenu(el){ document.querySelectorAll('.menu').forEach(m=>m.classList.remove('show')); el.querySelector('.menu').classList.toggle('show'); }
-document.addEventListener('click',e=>{ if(!e.target.closest('.file-menu')) document.querySelectorAll('.menu').forEach(m=>m.classList.remove('show')); });
-
-function openViewer(url,name){
-  const body=document.getElementById('viewerBody');
-  const ext=name.split('.').pop().toLowerCase();
-  if(['mp4','webm','mov','mkv'].includes(ext)){
-    body.innerHTML=`<video id="plyr" playsinline controls crossorigin="anonymous"><source src="${url}" type="video/mp4"></video>`;
-    player = new Plyr('#plyr',{controls:['play-large','play','progress','current-time','mute','volume','fullscreen']});
-  } else if(['mp3','wav','flac','ogg'].includes(ext)){
-    body.innerHTML=`<audio id="plyr" controls style="width:90%"><source src="${url}"></audio>`; player=new Plyr('#plyr');
-  } else if(['jpg','png','gif','webp','jpeg'].includes(ext)){
-    body.innerHTML=`<img src="${url}" alt="${name}">`;
-  } else { window.open(url,'_blank'); return; }
-  document.getElementById('viewer').style.display='flex';
-}
-function closeViewer(){ document.getElementById('viewer').style.display='none'; document.getElementById('viewerBody').innerHTML=''; if(player){player.destroy();player=null;} }
-
-function p2pStream(id,name){
-  if(!wtClient) wtClient=new WebTorrent();
-  alert('P2P streaming will start when peers are available. Opening direct stream for now.');
-  openViewer(`https://archive.org/download/${id}/${encodeURIComponent(name)}`,name);
+async function login() {
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  try {
+    const res = await fetch(`${API}/api/login`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: user.value, password: pass.value})
+    });
+    const data = await res.json();
+    if (data.token) {
+      token = data.token; localStorage.setItem('ad_token', token);
+      document.getElementById('login').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      loadMyItems(); showToast('Welcome back!', 'success');
+    } else throw new Error(data.error);
+  } catch (e) {
+    document.getElementById('loginErr').textContent = e.message;
+  } finally { btn.disabled = false; btn.textContent = 'Sign In'; }
 }
 
-async function handleFiles(files){
-  const id=document.getElementById('uploadId').value.trim() || '';
-  const list=document.getElementById('uploadList'); list.innerHTML='';
-  for(const file of files){
-    const item=document.createElement('div'); item.style.cssText='padding:12px;background:#0f172a;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center';
-    item.innerHTML=`<span><i class="fa-solid fa-file"></i> ${file.name}</span><span id="st-${file.name}">Uploading...</span>`;
-    list.appendChild(item);
-    const fd=new FormData(); fd.append('file',file); if(id) fd.append('identifier',id);
-    try{
-      const r=await fetch('/api/upload',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
-      const d=await r.json();
-      document.getElementById(`st-${file.name}`).innerHTML='<span style="color:#22c55e"><i class="fa-solid fa-check"></i> Done</span>';
-      if(d.identifier) document.getElementById('uploadId').value=d.identifier;
-    }catch(e){ document.getElementById(`st-${file.name}`).innerHTML='<span style="color:#ef4444">Failed</span>'; }
+function logout() { localStorage.removeItem('ad_token'); location.reload(); }
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('[id^="tab-"]').forEach(p => p.classList.add('hidden'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  if (tab === 'my' && !myItemsCache) loadMyItems();
+}
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.textContent.includes(view === 'grid' ? 'Grid' : 'List')));
+  const container = document.getElementById('driveContent');
+  if (container.dataset.files) renderFiles(JSON.parse(container.dataset.files));
+}
+function showToast(msg, type='') { const t=document.getElementById('toast'); t.textContent=msg; t.className=`toast ${type} show`; setTimeout(()=>t.classList.remove('show'),3000); }
+function apiHeaders() { return { 'Authorization': `Bearer ${token}` }; }
+function formatSize(b){ if(!b)return'0 B'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<u.length-1){b/=1024;i++} return b.toFixed(1)+' '+u[i]; }
+function getIcon(name){ const e=name.split('.').pop().toLowerCase(); if(['mp4','mkv','avi','mov'].includes(e))return'🎬'; if(['mp3','wav','flac'].includes(e))return'🎵'; if(['jpg','jpeg','png','gif','webp'].includes(e))return'🖼'; if(['pdf'].includes(e))return'📄'; if(['zip','rar','7z'].includes(e))return'📦'; return'📄'; }
+
+async function searchDrive() {
+  const id = document.getElementById('searchInput').value.trim();
+  if (!id) return;
+  const content = document.getElementById('driveContent');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const res = await fetch(`${API}/api/files/${encodeURIComponent(id)}`, { headers: apiHeaders() });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    content.dataset.files = JSON.stringify(data.files);
+    renderFiles(data.files, data.title);
+    document.getElementById('status').textContent = `${data.files.length} files`;
+  } catch (e) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">⚠</div><div class="empty-title">Error</div><div class="empty-text">${e.message}</div></div>`;
   }
 }
-const dz=document.getElementById('dropZone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
-dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFiles(e.dataTransfer.files)});
 
-async function loadStatus(){
-  const grid=document.getElementById('statusGrid'); grid.innerHTML='<div style="color:var(--muted)">Loading...</div>';
-  try{
-    const r=await api('/api/status'); const s=await r.json();
-    grid.innerHTML=`
-      <div class="status-card"><h3><i class="fa-solid fa-cloud-bolt" style="color:#f59e0b"></i> Cloudflare</h3><p>CDN proxy for hot files</p><span class="badge ${s.cloudflare.enabled?'green':'gray'}">${s.cloudflare.enabled?'Active':'Disabled'} • ${s.cloudflare.usage}</span></div>
-      <div class="status-card"><h3><i class="fa-solid fa-cube" style="color:#8b5cf6"></i> IPFS</h3><p>Decentralized gateways</p><span class="badge green">Active • ${s.ipfs.usage}</span></div>
-      <div class="status-card"><h3><i class="fa-solid fa-server" style="color:#06b6d4"></i> Oracle</h3><p>Free 10TB cache (optional)</p><span class="badge ${s.oracle.enabled?'green':'gray'}">${s.oracle.status}</span></div>
-      <div class="status-card"><h3><i class="fa-solid fa-database" style="color:#3b82f6"></i> Archive.org</h3><p>Direct mirrors</p><span class="badge blue">Active • ${s.archive.usage}</span></div>
-      <div class="status-card"><h3><i class="fa-solid fa-share-nodes" style="color:#22c55e"></i> WebTorrent</h3><p>P2P peer sharing</p><span class="badge green">Active • Saves ${s.webtorrent.saving}</span></div>
-      <div class="status-card"><h3><i class="fa-solid fa-shield-halved" style="color:#eab308"></i> Server</h3><p>Version ${s.server}</p><span class="badge blue">Online</span></div>
-    `;
-  }catch(e){ grid.innerHTML='<div style="color:#ef4444">Failed to load status</div>'; }
+function renderFiles(files, title='') {
+  const container = document.getElementById('driveContent');
+  if (!files.length) { container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">No files</div></div>'; return; }
+  
+  if (currentView === 'grid') {
+    container.innerHTML = `<div class="grid">${files.map(f=>`
+      <div class="card" onclick="window.open('${f.url}','_blank')">
+        <div class="card-icon">${getIcon(f.name)}</div>
+        <div class="card-title" title="${f.name}">${f.name}</div>
+        <div class="card-meta"><span>${formatSize(f.size)}</span><span>${f.format||''}</span></div>
+        <div class="card-actions"><div class="action-btn" onclick="event.stopPropagation();navigator.clipboard.writeText('${f.url}');showToast('Link copied')">⧉</div></div>
+      </div>`).join('')}</div>`;
+  } else {
+    container.innerHTML = `<div class="list">${files.map(f=>`
+      <div class="list-item" onclick="window.open('${f.url}','_blank')">
+        <div class="list-icon">${getIcon(f.name)}</div>
+        <div class="list-info"><div class="list-title">${f.name}</div><div class="list-meta">${formatSize(f.size)} • ${f.format||'file'}</div></div>
+      </div>`).join('')}</div>`;
+  }
 }
 
-// Auto-load
-if(token && currentId) setTimeout(loadFiles,500);
+async function loadMyItems() {
+  const container = document.getElementById('myContent');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const res = await fetch(`${API}/api/myitems`, { headers: apiHeaders() });
+    const data = await res.json();
+    myItemsCache = data.items;
+    if (!data.items.length) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">📤</div><div class="empty-title">No uploads yet</div><div class="empty-text">Go to Upload tab to add your first file</div></div>'; return;
+    }
+    container.innerHTML = `<div class="grid">${data.items.map(item=>`
+      <div class="card" onclick="document.getElementById('searchInput').value='${item.identifier}';switchTab('drive');searchDrive()">
+        <div class="card-icon">📁</div>
+        <div class="card-title" title="${item.title}">${item.title}</div>
+        <div class="card-meta"><span>${new Date(item.date).toLocaleDateString()}</span><span>${formatSize(item.size)}</span></div>
+      </div>`).join('')}</div>`;
+    document.getElementById('status').textContent = `${data.total} items`;
+  } catch (e) {
+    container.innerHTML = `<div class="empty"><div class="empty-title">Failed to load</div><div class="empty-text">${e.message}</div></div>`;
+  }
+}
+
+// Upload handling
+const dropZone = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.add('dragover')}));
+['dragleave','drop'].forEach(e=>dropZone.addEventListener(e,ev=>{ev.preventDefault();dropZone.classList.remove('dragover')}));
+dropZone.addEventListener('drop',ev=>handleFiles(ev.dataTransfer.files));
+
+async function handleFiles(files) {
+  for (const file of files) await uploadFile(file);
+}
+async function uploadFile(file) {
+  const id = document.getElementById('customId').value.trim();
+  const queue = document.getElementById('uploadQueue');
+  const item = document.createElement('div'); item.className='list-item'; item.style.marginBottom='8px';
+  item.innerHTML = `<div class="list-icon">⬆</div><div class="list-info"><div class="list-title">${file.name}</div><div class="list-meta">Uploading...</div></div>`;
+  queue.prepend(item);
+  
+  const form = new FormData(); form.append('file', file); if(id) form.append('identifier', id);
+  try {
+    const res = await fetch(`${API}/api/upload`, { method:'POST', headers: apiHeaders(), body: form });
+    const data = await res.json();
+    if (data.success) {
+      item.querySelector('.list-meta').textContent = `Uploaded to ${data.identifier}`;
+      item.querySelector('.list-icon').textContent = '✓';
+      showToast(`Uploaded ${file.name}`, 'success'); myItemsCache = null;
+    } else throw new Error(data.error);
+  } catch (e) {
+    item.querySelector('.list-meta').textContent = 'Failed: '+e.message; item.querySelector('.list-icon').textContent = '✗';
+    showToast('Upload failed', 'error');
+  }
+}
 </script>
 </body>
 </html>
