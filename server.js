@@ -1,3 +1,7 @@
+/**
+ * Archive Drive v6.2 - Production Server
+ * Features: auth, my-items, upload, streaming, Cloudflare + Oracle fallback
+ */
 require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
@@ -9,178 +13,271 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Config
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@2330';
-const IA_ACCESS_KEY = process.env.IA_ACCESS_KEY;
-const IA_SECRET_KEY = process.env.IA_SECRET_KEY;
-const IA_USERNAME = process.env.IA_USERNAME || 'namaycb';
-const CF_WORKER = process.env.CF_WORKER || '';
-const ORACLE_CACHE = process.env.ORACLE_CACHE || '';
+// Config from environment
+const CONFIG = {
+  IA_USERNAME: process.env.IA_USERNAME || 'namaycb',
+  IA_ACCESS_KEY: process.env.IA_ACCESS_KEY,
+  IA_SECRET_KEY: process.env.IA_SECRET_KEY,
+  ADMIN_USER: process.env.ADMIN_USER || 'admin',
+  ADMIN_PASS: process.env.ADMIN_PASS || 'Admin@2330',
+  CF_WORKER: process.env.CF_WORKER || '',
+  ORACLE_CACHE: process.env.ORACLE_CACHE || ''
+};
 
-console.log('✓ Cloudflare:', CF_WORKER ? 'enabled' : 'disabled');
-console.log('✓ Oracle cache:', ORACLE_CACHE ? `enabled (${ORACLE_CACHE})` : 'disabled (optional)');
+console.log('=== Archive Drive v6.2 Starting ===');
+console.log('User:', CONFIG.IA_USERNAME);
+console.log('Cloudflare:', CONFIG.CF_WORKER ? 'ENABLED' : 'disabled');
+console.log('Oracle:', CONFIG.ORACLE_CACHE ? 'ENABLED' : 'disabled');
 
-app.use(express.json({ limit: '50mb' }));
+// Middleware
+app.use(express.json({limit: '10mb'}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
-  res.set('Accept-Ranges', 'bytes');
-  res.set('Cache-Control', 'public, max-age=86400');
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Range');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   next();
 });
 
+// Session storage (in-memory)
 const sessions = new Map();
-const upload = multer({ dest: '/tmp/', limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ dest: '/tmp/uploads/', limits: { fileSize: 5 * 1024 * 1024 } }); // 5GB
 
-// Auth middleware
-function auth(req, res, next) {
-  const token = req.headers['authorization']?.replace('Bearer ', '');
-  if (!token || !sessions.has(token)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-}
-
-// Login
+// ================= AUTH =================
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    const token = crypto.randomBytes(24).toString('hex');
-    sessions.set(token, Date.now());
-    if (sessions.size > 100) {
-      const oldest = [...sessions.keys()][0];
-      sessions.delete(oldest);
-    }
-    res.json({ token, user: username });
-  } else {
-    res.status(401).json({ error: 'Invalid credentials' });
+  console.log(`[AUTH] Login attempt: ${username}`);
+  
+  if (username === CONFIG.ADMIN_USER && password === CONFIG.ADMIN_PASS) {
+    const token = crypto.randomBytes(32).toString('hex');
+    sessions.set(token, { user: username, created: Date.now() });
+    console.log(`[AUTH] Success: ${username}`);
+    return res.json({ token, user: username });
+  }
+  
+  console.log(`[AUTH] Failed: ${username}`);
+  res.status(401).json({ error: 'Invalid credentials' });
+});
+
+const auth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'No token' });
+  
+  const token = authHeader.split(' ')[1];
+  if (!sessions.has(token)) return res.status(401).json({ error: 'Invalid token' });
+  
+  next();
+};
+
+// ================= HELPERS =================
+function getFileUrl(identifier, filename) {
+  const encoded = encodeURIComponent(filename);
+  
+  // 30% Cloudflare, 20% Oracle, 50% direct
+  const rand = Math.random();
+  if (CONFIG.CF_WORKER && rand < 0.3) {
+    return `https://${CONFIG.CF_WORKER}/ia/${identifier}/${encoded}`;
+  }
+  if (CONFIG.ORACLE_CACHE && rand < 0.5) {
+    return `http://${CONFIG.ORACLE_CACHE}/ia/${identifier}/${encoded}`;
+  }
+  return `https://archive.org/download/${identifier}/${encoded}`;
+}
+
+function isMediaFile(filename) {
+  const mediaExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.mp3', '.wav', '.flac', '.jpg', '.jpeg', '.png', '.gif', '.pdf'];
+  return mediaExts.some(ext => filename.toLowerCase().endsWith(ext));
+}
+
+function isMetadataFile(filename) {
+  return filename.endsWith('.xml') || 
+         filename.endsWith('.sqlite') || 
+         filename.startsWith('__') ||
+         filename.includes('_meta') ||
+         filename.includes('_files') ||
+         filename.includes('_reviews');
+}
+
+// ================= API ROUTES =================
+
+// Get user's items
+app.get('/api/myitems', auth, async (req, res) => {
+  console.log(`[API] Fetching items for ${CONFIG.IA_USERNAME}`);
+  try {
+    const searchUrl = `https://archive.org/advancedsearch.php?q=uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&fl[]=date&fl[]=item_size&fl[]=downloads&sort[]=date desc&rows=200&output=json`;
+    
+    const response = await axios.get(searchUrl, { timeout: 15000 });
+    const docs = response.data.response.docs || [];
+    
+    const items = docs.map(doc => ({
+      identifier: doc.identifier,
+      title: doc.title || doc.identifier,
+      date: doc.date,
+      size: doc.item_size || 0,
+      downloads: doc.downloads || 0
+    }));
+    
+    console.log(`[API] Found ${items.length} items`);
+    res.json({ items, total: items.length });
+  } catch (error) {
+    console.error('[API] myitems error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch items', details: error.message });
   }
 });
 
-// Smart CDN URL resolver
-function getFastUrl(id, name, ipfsHash = null) {
-  const encoded = encodeURIComponent(name);
-  const r = Math.random();
-  
-  if (CF_WORKER && r < 0.25) {
-    return `https://${CF_WORKER}/ia/${id}/${encoded}`;
-  }
-  
-  if (ipfsHash && r < 0.70) {
-    const gateway = r < 0.5 ? 'https://cloudflare-ipfs.com' : 'https://dweb.link';
-    return `${gateway}/ipfs/${ipfsHash}/${encoded}`;
-  }
-  
-  if (ORACLE_CACHE && r < 0.85) {
-    return `http://${ORACLE_CACHE}/ia/${id}/${encoded}`;
-  }
-  
-  const mirrors = ['https://ia800900.us.archive.org','https://archive.org'];
-  const mirror = mirrors[Math.floor(Math.random() * mirrors.length)];
-  return `${mirror}/download/${id}/${encoded}`;
-}
-
-// Get files
+// Get files for an item
 app.get('/api/files/:id', auth, async (req, res) => {
+  const identifier = req.params.id;
+  console.log(`[API] Fetching files for ${identifier}`);
+  
   try {
-    const id = req.params.id;
-    const { data } = await axios.get(`https://archive.org/metadata/${id}`, { timeout: 15000 });
+    const metaUrl = `https://archive.org/metadata/${identifier}`;
+    const response = await axios.get(metaUrl, { timeout: 15000 });
     
-    if (!data?.files) return res.json({ files: [], id, title: id });
+    const metadata = response.data.metadata || {};
+    const files = response.data.files || [];
     
-    const ipfsHash = data.metadata?.ipfs || data.ipfs || null;
-    const title = data.metadata?.title || id;
-    
-    const files = data.files
-      .filter(f => f.name && !f.name.endsWith('_meta.xml') && !f.name.endsWith('_files.xml') && f.source === 'original')
+    // Filter and process files
+    const processedFiles = files
+      .filter(f => f.source === 'original' && !isMetadataFile(f.name))
       .map(f => ({
         name: f.name,
         size: parseInt(f.size) || 0,
-        format: f.format || path.extname(f.name).slice(1).toUpperCase(),
-        mtime: f.mtime ? new Date(parseInt(f.mtime) * 1000).toISOString() : new Date().toISOString(),
-        url: getFastUrl(id, f.name, ipfsHash),
-        directUrl: `https://archive.org/download/${id}/${encodeURIComponent(f.name)}`,
-        ipfs: ipfsHash
+        format: f.format,
+        isMedia: isMediaFile(f.name),
+        url: getFileUrl(identifier, f.name),
+        directUrl: `https://archive.org/download/${identifier}/${encodeURIComponent(f.name)}`,
+        created: f.mtime
       }))
-      .sort((a, b) => b.mtime.localeCompare(a.mtime));
+      .sort((a, b) => {
+        // Media files first, then by size descending
+        if (a.isMedia && !b.isMedia) return -1;
+        if (!a.isMedia && b.isMedia) return 1;
+        return b.size - a.size;
+      });
     
-    res.json({ files, id, title, ipfs: ipfsHash, count: files.length });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch files', details: err.message });
+    console.log(`[API] ${identifier}: ${processedFiles.length} files`);
+    res.json({
+      identifier,
+      title: metadata.title,
+      description: metadata.description,
+      files: processedFiles,
+      total: processedFiles.length
+    });
+  } catch (error) {
+    console.error(`[API] files error for ${identifier}:`, error.message);
+    res.status(500).json({ error: 'Failed to fetch files', details: error.message });
   }
 });
 
-// Upload
+// Upload file
 app.post('/api/upload', auth, upload.single('file'), async (req, res) => {
+  console.log(`[UPLOAD] Starting upload: ${req.file?.originalname}`);
+  
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file provided' });
+  }
+  
+  if (!CONFIG.IA_ACCESS_KEY || !CONFIG.IA_SECRET_KEY) {
+    return res.status(500).json({ error: 'IA credentials not configured' });
+  }
+  
   try {
-    if (!IA_ACCESS_KEY || !IA_SECRET_KEY) {
-      return res.status(500).json({ error: 'IA keys not configured' });
-    }
+    const identifier = req.body.identifier || `${CONFIG.IA_USERNAME}-upload-${Date.now()}`;
+    const filename = req.file.originalname;
     
-    const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file' });
+    console.log(`[UPLOAD] To ${identifier}/${filename} (${req.file.size} bytes)`);
     
-    const identifier = req.body.identifier || `${IA_USERNAME}-remote-${Date.now()}`;
-    const filename = file.originalname;
+    const uploadUrl = `https://s3.us.archive.org/${identifier}/${encodeURIComponent(filename)}`;
+    const fileStream = fs.createReadStream(req.file.path);
     
-    const stream = fs.createReadStream(file.path);
-    await axios.put(`https://s3.us.archive.org/${identifier}/${encodeURIComponent(filename)}`, stream, {
+    const response = await axios.put(uploadUrl, fileStream, {
       headers: {
-        'Authorization': `LOW ${IA_ACCESS_KEY}:${IA_SECRET_KEY}`,
+        'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
         'x-amz-auto-make-bucket': '1',
         'x-archive-meta01-collection': 'opensource',
         'x-archive-meta-mediatype': 'data',
         'x-archive-meta-title': filename,
-        'x-archive-meta-creator': IA_USERNAME,
-        'Content-Type': file.mimetype || 'application/octet-stream'
+        'x-archive-meta-uploader': CONFIG.IA_USERNAME,
+        'Content-Type': 'application/octet-stream'
       },
       maxBodyLength: Infinity,
-      timeout: 0
+      maxContentLength: Infinity,
+      timeout: 300000 // 5 minutes
     });
     
-    fs.unlinkSync(file.path);
-    res.json({ success: true, identifier, filename, url: `https://archive.org/details/${identifier}` });
-  } catch (err) {
-    if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: 'Upload failed', details: err.response?.data || err.message });
-  }
-});
-
-// Delete
-app.delete('/api/delete/:id/:filename', auth, async (req, res) => {
-  try {
-    const { id, filename } = req.params;
-    await axios.delete(`https://s3.us.archive.org/${id}/${encodeURIComponent(filename)}`, {
-      headers: { 'Authorization': `LOW ${IA_ACCESS_KEY}:${IA_SECRET_KEY}` }
+    // Cleanup temp file
+    fs.unlinkSync(req.file.path);
+    
+    console.log(`[UPLOAD] Success: ${identifier}`);
+    res.json({ 
+      success: true, 
+      identifier, 
+      filename,
+      url: `https://archive.org/details/${identifier}`
     });
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: 'Delete failed' });
+    
+  } catch (error) {
+    console.error('[UPLOAD] Error:', error.message);
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ 
+      error: 'Upload failed', 
+      details: error.response?.data || error.message 
+    });
   }
 });
 
-// Status
-app.get('/api/status', auth, async (req, res) => {
-  const status = {
-    server: 'v6.2',
-    timestamp: new Date().toISOString(),
-    cloudflare: { enabled: !!CF_WORKER, url: CF_WORKER || null, usage: '25%', status: CF_WORKER ? 'active' : 'disabled' },
-    ipfs: { enabled: true, gateways: ['cloudflare-ipfs.com','dweb.link'], usage: '45%', status: 'active' },
-    oracle: { enabled: !!ORACLE_CACHE, url: ORACLE_CACHE || null, usage: ORACLE_CACHE ? '15%' : '0%', status: ORACLE_CACHE ? 'active' : 'optional - not configured' },
-    archive: { enabled: true, mirrors: 2, usage: ORACLE_CACHE ? '15%' : '30%', status: 'active' },
-    webtorrent: { enabled: true, saving: '50-70%', status: 'active' }
-  };
-  res.json(status);
+// System status
+app.get('/api/status', auth, (req, res) => {
+  res.json({
+    server: 'Archive Drive v6.2',
+    user: CONFIG.IA_USERNAME,
+    cloudflare: {
+      enabled: !!CONFIG.CF_WORKER,
+      endpoint: CONFIG.CF_WORKER
+    },
+    oracle: {
+      enabled: !!CONFIG.ORACLE_CACHE,
+      endpoint: CONFIG.ORACLE_CACHE
+    },
+    ia_configured: !!(CONFIG.IA_ACCESS_KEY && CONFIG.IA_SECRET_KEY),
+    uptime: process.uptime()
+  });
 });
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+// Search
+app.get('/api/search', auth, async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.json({ items: [] });
+  
+  try {
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}+AND+uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&rows=20&output=json`;
+    const response = await axios.get(url, { timeout: 10000 });
+    res.json({ items: response.data.response.docs });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Serve frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✓ Archive Drive v6.2 running on port ${PORT}`);
+  console.log(`✓ Server running on http://0.0.0.0:${PORT}`);
+  console.log(`✓ Admin: ${CONFIG.ADMIN_USER}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('Shutting down...');
+  process.exit(0);
 });
