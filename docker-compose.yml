@@ -1,15 +1,15 @@
 version: '3.8'
+
 services:
   archive-drive:
-    image: node:20-slim
-    working_dir: /app
-    command: sh -c "npm install && node server.js"
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+            - "3000:3000"   # <-- THIS LINE IS MISSING IN YOUR DEPLOYMENT
     environment:
-      - IA_ACCESS_KEY=${IA_ACCESS_KEY}
-      - IA_SECRET_KEY=${IA_SECRET_KEY}
-      - IA_EMAIL=${IA_EMAIL}
-    volumes:
-      - /data/compose/11:/app  # Portainer will mount your repo here automatically
+            - IA_ACCESS_KEY=${IA_ACCESS_KEY}
+            - IA_SECRET_KEY=${IA_SECRET_KEY}
+            - IA_EMAIL=${IA_EMAIL}
+            - PORT=3000
     restart: unless-stopped
