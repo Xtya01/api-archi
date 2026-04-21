@@ -44,7 +44,7 @@ app.use((req, res, next) => {
 const sessions = new Map();
 const upload = multer({ 
   dest: '/tmp/uploads/',
-  limits: { fileSize: 5 * 1024 } // 5GB
+  limits: { fileSize: 5 * 1024 * 1024 } // 5GB
 });
 
 // ================= AUTH =================
