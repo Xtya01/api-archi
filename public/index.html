@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,132 +6,127 @@
 <title>Archive Drive</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.js"></script>
 <style>
 :root{--bg:#000;--card:#0a0a0f;--card2:#14141c;--border:#1f1f2e;--text:#fff;--muted:#8b8ba7;--accent:#6366f1;--accent2:#8b5cf6}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
-.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 0%,rgba(99,102,241,.15),transparent 50%),radial-gradient(400px at 80% 100%,rgba(139,92,246,.1),transparent 50%),#000}
+body{font-family:'Inter',system-ui;background:var(--bg);color:var(--text)}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 0%,rgba(99,102,241,.15),transparent 50%),#000}
 .container{max-width:1400px;margin:0 auto;padding:16px;padding-bottom:90px}
 @media(min-width:768px){.container{padding:24px;padding-bottom:24px}}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px}
 .logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center}
-.card{background:rgba(10,10,15,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:20px}
+.card{background:rgba(10,10,15,.8);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:20px}
 .login-card{max-width:380px;margin:15vh auto;text-align:center;padding:32px 24px}
 .input{width:100%;padding:14px;margin:8px 0;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:16px}
-.input:focus{outline:none;border-color:var(--accent)}
 .btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:white;font-weight:600;font-size:16px;cursor:pointer}
-.btn-small{padding:10px 16px;font-size:14px;width:auto;min-height:44px}
-.btn-ghost{background:var(--card2);border:1px solid var(--border)}
-
-/* MOBILE BOTTOM NAV */
+.btn-small{padding:10px 14px;font-size:14px;width:auto;min-height:40px;border-radius:10px;background:var(--card2);border:1px solid var(--border);color:var(--text);cursor:pointer}
+.btn-small:hover{background:#1f1f2e}
 .app{display:block}
 .sidebar{display:none}
 .mobile-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;background:none;border:none;color:var(--muted);font-size:11px;min-height:56px}
 .nav-btn.active{color:var(--accent)}
-.nav-icon{font-size:22px}
-
-/* DESKTOP SIDEBAR */
+.nav-btn i{font-size:20px}
 @media(min-width:768px){
 .app{display:grid;grid-template-columns:240px 1fr;gap:24px}
 .sidebar{display:flex;flex-direction:column;gap:6px;padding:16px}
-.mobile-nav{display:none}
-.nav-item{padding:12px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--muted);transition:.2s}
+.mobile-nav{display:none!important}
+.nav-item{padding:12px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--muted)}
 .nav-item.active{background:rgba(99,102,241,.15);color:white}
+.nav-item i{width:20px;text-align:center}
 }
-
-.tab{display:none}.tab.active{display:block;animation:fade .2s}
-@keyframes fade{from{opacity:0}to{opacity:1}}
+.tab{display:none}.tab.active{display:block}
 .upload-zone{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;background:var(--card2);cursor:pointer}
 .progress{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin:12px 0;display:none}
-.progress-bar{height:100%;background:var(--accent);width:0%;transition:width .3s}
-.item-list{display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 300px);overflow-y:auto;-webkit-overflow-scrolling:touch}
-.item{padding:16px;background:var(--card2);border:1px solid var(--border);border-radius:14px}
+.progress-bar{height:100%;background:var(--accent);width:0%;transition:.3s}
+.item-list{display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 300px);overflow-y:auto}
+.item{padding:16px;background:var(--card2);border:1px solid var(--border);border-radius:14px;cursor:pointer}
 .item:active{transform:scale(.98)}
 .file-grid{display:grid;gap:8px}
-.file-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card2);border-radius:12px;min-height:64px}
-.file-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.file-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card2);border-radius:12px;position:relative}
+.file-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .file-icon.img{background:rgba(16,185,129,.2);color:#10b981}
 .file-icon.vid{background:rgba(239,68,68,.2);color:#ef4444}
 .file-icon.aud{background:rgba(245,158,11,.2);color:#f59e0b}
 .file-icon.doc{background:rgba(99,102,241,.2);color:#6366f1}
+.file-icon.arc{background:rgba(139,92,246,.2);color:#8b5cf6}
 .file-info{flex:1;min-width:0}.file-name{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-size{font-size:12px;color:var(--muted);margin-top:2px}
-.file-actions{display:flex;gap:6px}
-
-/* VIEWER */
-.viewer{position:fixed;inset:0;background:#000;z-index:1000;display:none}
-.viewer.active{display:flex;flex-direction:column}
-.viewer-head{padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));background:rgba(0,0,0,.9);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border)}
-.viewer-body{flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
-.viewer-body img{max-width:100%;max-height:100%;object-fit:contain}
+.menu-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.menu-btn:hover{background:#1f1f2e;color:white}
+.action-menu{position:absolute;right:12px;top:50px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,.8);z-index:50;display:none}
+.action-menu.show{display:block}
+.menu-item{padding:10px 12px;border-radius:8px;display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;color:var(--text)}
+.menu-item:hover{background:var(--card2)}
+.menu-item i{width:18px;text-align:center;color:var(--muted)}
+.menu-item.danger{color:#ef4444}
+.viewer{position:fixed;inset:0;background:#000;z-index:1000;display:none;flex-direction:column}
+.viewer.active{display:flex}
+.viewer-head{padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));background:rgba(0,0,0,.9);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.viewer-body{flex:1;display:flex;align-items:center;justify-content:center;background:#000}
 .plyr{width:100%;height:100%;--plyr-color-main:var(--accent)}
-.plyr--video{height:100%}
-.plyr__video-wrapper{height:100%}
-
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);border:1px solid var(--border);padding:12px 20px;border-radius:12px;opacity:0;transition:.3s;z-index:2000;white-space:nowrap;max-width:90vw}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);border:1px solid var(--border);padding:12px 20px;border-radius:12px;opacity:0;transition:.3s;z-index:2000}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 @media(min-width:768px){.toast{bottom:24px;left:auto;right:24px;transform:translateY(100px)}.toast.show{transform:translateY(0)}}
 .hidden{display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:2000;padding:20px}
+.modal.show{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%}
 </style>
 </head>
 <body>
 <div class="bg"></div>
 <div class="container">
 <div class="header">
-<div class="logo"><div class="logo-icon">📦</div><span>Archive Drive</span></div>
+<div class="logo"><div class="logo-icon"><i class="fa-solid fa-box-archive"></i></div><span>Archive Drive</span></div>
 <div id="userInfo" class="hidden" style="color:var(--muted);font-size:13px"></div>
 </div>
 
 <div id="loginScreen" class="login-card card">
 <h1 style="font-size:24px;margin-bottom:8px">Welcome</h1>
 <p style="color:var(--muted);margin-bottom:24px;font-size:14px">Sign in to continue</p>
-<input id="u" class="input" placeholder="Username" value="admin" autocomplete="username">
-<input id="p" class="input" type="password" placeholder="Password" value="Admin@2330" autocomplete="current-password">
-<button class="btn" onclick="doLogin()" style="margin-top:12px">Continue</button>
+<input id="u" class="input" placeholder="Username" value="admin">
+<input id="p" class="input" type="password" placeholder="Password" value="Admin@2330">
+<button class="btn" onclick="doLogin()" style="margin-top:12px">Continue <i class="fa-solid fa-arrow-right"></i></button>
 </div>
 
 <div id="app" class="hidden">
 <div class="app">
 <aside class="sidebar card">
-<div class="nav-item active" onclick="switchTab('upload',this)"><span>⬆️</span><span>Upload</span></div>
-<div class="nav-item" onclick="switchTab('remote',this)"><span>🌐</span><span>Remote</span></div>
-<div class="nav-item" onclick="switchTab('browse',this)"><span>📁</span><span>Browse</span></div>
+<div class="nav-item active" onclick="switchTab('upload',this)"><i class="fa-solid fa-cloud-arrow-up"></i><span>Upload</span></div>
+<div class="nav-item" onclick="switchTab('remote',this)"><i class="fa-solid fa-globe"></i><span>Remote</span></div>
+<div class="nav-item" onclick="switchTab('browse',this)"><i class="fa-solid fa-folder"></i><span>Browse</span></div>
 </aside>
 <main>
 <div id="upload" class="tab active"><div class="card">
-<h2 style="font-size:17px;margin-bottom:16px">Upload</h2>
-<div class="upload-zone" onclick="document.getElementById('files').click()">
-<div style="font-size:36px;margin-bottom:8px">📤</div>
-<div style="font-weight:500">Tap to select files</div>
-<div style="color:var(--muted);font-size:13px;margin-top:4px">or drag & drop</div>
-<input type="file" id="files" class="hidden" multiple onchange="handleFiles()">
-</div>
+<h2 style="font-size:17px;margin-bottom:16px"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</h2>
+<div class="upload-zone" onclick="files.click()"><i class="fa-solid fa-file-arrow-up" style="font-size:36px;margin-bottom:8px;opacity:.5"></i><div style="font-weight:500">Select files</div><input type="file" id="files" class="hidden" multiple onchange="handleFiles()"></div>
 <input id="upId" class="input" placeholder="Identifier (optional)" style="margin-top:12px">
 <div class="progress" id="prog"><div class="progress-bar" id="progBar"></div></div>
-<button id="upBtn" class="btn hidden" onclick="uploadFiles()" style="margin-top:12px">Upload <span id="fileCount"></span></button>
+<button id="upBtn" class="btn hidden" onclick="uploadFiles()" style="margin-top:12px"><i class="fa-solid fa-upload"></i> Upload <span id="fileCount"></span></button>
 <div id="upOut" style="margin-top:12px"></div>
 </div></div>
 
 <div id="remote" class="tab"><div class="card">
-<h2 style="font-size:17px;margin-bottom:16px">Remote URL</h2>
-<input id="remoteUrl" class="input" placeholder="https://..." inputmode="url">
+<h2 style="font-size:17px;margin-bottom:16px"><i class="fa-solid fa-globe"></i> Remote URL</h2>
+<input id="remoteUrl" class="input" placeholder="https://...">
 <input id="remoteId" class="input" placeholder="Identifier">
-<button class="btn" onclick="uploadRemote()">Fetch & Upload</button>
+<button class="btn" onclick="uploadRemote()"><i class="fa-solid fa-download"></i> Fetch & Upload</button>
 <div id="remoteOut" style="margin-top:12px"></div>
 </div></div>
 
 <div id="browse" class="tab"><div class="card">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-<h2 style="font-size:17px">Files</h2>
-<button class="btn-small btn-ghost" onclick="loadItems()">↻</button>
+<h2 style="font-size:17px"><i class="fa-solid fa-folder-open"></i> Files</h2>
+<button class="btn-small" onclick="loadItems()"><i class="fa-solid fa-rotate"></i></button>
 </div>
 <div id="itemsView"><div id="items" class="item-list"></div></div>
 <div id="filesView" class="hidden">
-<button class="btn-small btn-ghost" onclick="backToItems()" style="margin-bottom:12px">← Back</button>
+<button class="btn-small" onclick="backToItems()" style="margin-bottom:12px"><i class="fa-solid fa-arrow-left"></i> Back</button>
 <h3 id="filesTitle" style="margin-bottom:12px;font-size:15px"></h3>
 <div id="filesList" class="file-grid"></div>
 </div>
@@ -142,47 +136,41 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 </div>
 </div>
 
-<!-- Mobile Bottom Nav -->
 <div class="mobile-nav" id="mobileNav" style="display:none">
-<button class="nav-btn active" onclick="switchMobile('upload',this)"><div class="nav-icon">⬆️</div><span>Upload</span></button>
-<button class="nav-btn" onclick="switchMobile('remote',this)"><div class="nav-icon">🌐</div><span>Remote</span></button>
-<button class="nav-btn" onclick="switchMobile('browse',this)"><div class="nav-icon">📁</div><span>Browse</span></button>
+<button class="nav-btn active" onclick="switchMobile('upload',this)"><i class="fa-solid fa-cloud-arrow-up"></i><span>Upload</span></button>
+<button class="nav-btn" onclick="switchMobile('remote',this)"><i class="fa-solid fa-globe"></i><span>Remote</span></button>
+<button class="nav-btn" onclick="switchMobile('browse',this)"><i class="fa-solid fa-folder"></i><span>Browse</span></button>
 </div>
 
-<div class="viewer" id="viewer">
-<div class="viewer-head">
-<div id="viewerTitle" style="font-weight:500;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
-<button class="btn-small btn-ghost" onclick="closeViewer()">✕</button>
-</div>
-<div class="viewer-body" id="viewerBody"></div>
-</div>
+<div class="viewer" id="viewer"><div class="viewer-head"><div id="viewerTitle" style="font-weight:500;font-size:15px;overflow:hidden;text-overflow:ellipsis"></div><button class="btn-small" onclick="closeViewer()"><i class="fa-solid fa-xmark"></i></button></div><div class="viewer-body" id="viewerBody"></div></div>
+
+<div class="modal" id="infoModal" onclick="closeInfo(event)"><div class="modal-box" onclick="event.stopPropagation()"><h3 style="margin-bottom:16px"><i class="fa-solid fa-circle-info"></i> File Info</h3><div id="infoContent" style="font-size:14px;line-height:1.8;color:var(--muted)"></div><button class="btn" onclick="closeInfo()" style="margin-top:20px">Close</button></div></div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-let selectedFiles=[],player=null;
+let selectedFiles=[],player=null,currentMenu=null;
 const IMG=['png','jpg','jpeg','gif','webp','svg'],VID=['mp4','webm','mov','m4v','mkv'],AUD=['mp3','wav','flac','m4a','aac','ogg'],PDF=['pdf'];
 
-async function doLogin(){
- const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u.value,pass:p.value})});
- if(r.ok){
-   loginScreen.classList.add('hidden');app.classList.remove('hidden');userInfo.classList.remove('hidden');userInfo.textContent='namaycb';
-   if(window.innerWidth<768)mobileNav.style.display='flex';
-   loadItems();showToast('Ready');
- }else showToast('Invalid',1);
-}
-function switchTab(n,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));document.getElementById(n).classList.add('active');if(el)el.classList.add('active');}
-function switchMobile(n,el){switchTab(n);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
-function handleFiles(){selectedFiles=[...files.files];fileCount.textContent=selectedFiles.length;upBtn.classList.toggle('hidden',!selectedFiles.length);}
-async function uploadFiles(){if(!selectedFiles.length)return;upBtn.disabled=1;prog.style.display='block';const fd=new FormData();selectedFiles.forEach(f=>fd.append('files',f));fd.append('identifier',upId.value);const x=new XMLHttpRequest();x.upload.onprogress=e=>{if(e.lengthComputable)progBar.style.width=Math.round(e.loaded/e.total*100)+'%'};x.onload=()=>{prog.style.display='none';upBtn.disabled=0;const d=JSON.parse(x.responseText);upOut.innerHTML=d.results.map(r=>`<div style="padding:10px;background:var(--card2);border-radius:10px;margin:6px 0;font-size:14px">✅ ${r.file}</div>`).join('');selectedFiles=[];files.value='';upBtn.classList.add('hidden');loadItems();showToast('Uploaded')};x.open('POST','/api/upload');x.send(fd);}
-async function uploadRemote(){const url=remoteUrl.value;if(!url)return showToast('Enter URL',1);remoteOut.innerHTML='<div style="color:var(--muted);font-size:14px">Fetching...</div>';const r=await fetch('/api/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,identifier:remoteId.value})});const j=await r.json();if(r.ok){remoteOut.innerHTML=`<div style="padding:10px;background:rgba(16,185,129,.15);border-radius:10px;font-size:14px">✅ ${j.filename}</div>`;loadItems();showToast('Done')}else{remoteOut.innerHTML=`<div style="color:#ef4444;font-size:14px">${j.error}</div>`;showToast('Failed',1)}}
-async function loadItems(){items.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading</div>';const r=await fetch('/api/items');const j=await r.json();items.innerHTML=j.items.map(it=>`<div class="item" onclick="showFiles('${it.identifier}')"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">${it.identifier}</div><div style="font-size:12px;color:var(--muted)">${Math.round((it.item_size||0)/1024/1024)}MB</div></div></div>`).join('')||'<div style="text-align:center;padding:40px;color:var(--muted)">Empty</div>';}
-async function showFiles(id){itemsView.classList.add('hidden');filesView.classList.remove('hidden');filesTitle.textContent=id;filesList.innerHTML='<div style="text-align:center;padding:40px">Loading</div>';const r=await fetch(`/api/files/${id}`);const j=await r.json();filesList.innerHTML=j.files.map(f=>{let i='📄',c='doc';if(IMG.includes(f.ext)){i='🖼️';c='img'}else if(VID.includes(f.ext)){i='🎬';c='vid'}else if(AUD.includes(f.ext)){i='🎵';c='aud'};const v=[...IMG,...VID,...AUD,...PDF].includes(f.ext);return`<div class="file-item"><div class="file-icon ${c}">${i}</div><div class="file-info"><div class="file-name">${f.name}</div><div class="file-size">${f.size?Math.round(f.size/1024/1024*10)/10+' MB':''}</div></div><div class="file-actions">${v?`<button class="btn-small" onclick="openViewer('${f.url}','${f.name}','${f.ext}')">View</button>`:''}</div></div>`}).join('');}
+async function doLogin(){const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u.value,pass:p.value})});if(r.ok){loginScreen.classList.add('hidden');app.classList.remove('hidden');userInfo.classList.remove('hidden');userInfo.innerHTML='<i class="fa-solid fa-user"></i> namaycb';if(innerWidth<768)mobileNav.style.display='flex';loadItems();showToast('Ready')}else showToast('Invalid',1)}
+function switchTab(n,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));document.getElementById(n).classList.add('active');if(el)el.classList.add('active')}
+function switchMobile(n,el){switchTab(n);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
+function handleFiles(){selectedFiles=[...files.files];fileCount.textContent=selectedFiles.length;upBtn.classList.toggle('hidden',!selectedFiles.length)}
+async function uploadFiles(){if(!selectedFiles.length)return;upBtn.disabled=1;prog.style.display='block';const fd=new FormData();selectedFiles.forEach(f=>fd.append('files',f));fd.append('identifier',upId.value);const x=new XMLHttpRequest();x.upload.onprogress=e=>{if(e.lengthComputable)progBar.style.width=Math.round(e.loaded/e.total*100)+'%'};x.onload=()=>{prog.style.display='none';upBtn.disabled=0;const d=JSON.parse(x.responseText);upOut.innerHTML=d.results.map(r=>`<div style="padding:10px;background:var(--card2);border-radius:10px;margin:6px 0;font-size:14px"><i class="fa-solid fa-check" style="color:#10b981"></i> ${r.file}</div>`).join('');selectedFiles=[];files.value='';upBtn.classList.add('hidden');loadItems();showToast('Uploaded')};x.open('POST','/api/upload');x.send(fd)}
+async function uploadRemote(){const url=remoteUrl.value;if(!url)return showToast('Enter URL',1);remoteOut.innerHTML='<div style="color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i> Fetching...</div>';const r=await fetch('/api/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,identifier:remoteId.value})});const j=await r.json();if(r.ok){remoteOut.innerHTML=`<div style="padding:10px;background:rgba(16,185,129,.15);border-radius:10px"><i class="fa-solid fa-check"></i> ${j.filename}</div>`;loadItems();showToast('Done')}else{remoteOut.innerHTML=`<div style="color:#ef4444"><i class="fa-solid fa-triangle-exclamation"></i> ${j.error}</div>`;showToast('Failed',1)}}
+async function loadItems(){items.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i></div>';const r=await fetch('/api/items');const j=await r.json();items.innerHTML=j.items.map(it=>`<div class="item" onclick="showFiles('${it.identifier}')"><div style="display:flex;justify-content:space-between;align-items:center"><div><i class="fa-solid fa-box" style="color:var(--accent);margin-right:8px"></i><span style="font-weight:500">${it.identifier}</span></div><div style="font-size:12px;color:var(--muted)">${Math.round((it.item_size||0)/1024/1024)} MB</div></div></div>`).join('')}
+async function showFiles(id){itemsView.classList.add('hidden');filesView.classList.remove('hidden');filesTitle.innerHTML=`<i class="fa-solid fa-folder-open"></i> ${id}`;filesList.innerHTML='<div style="text-align:center;padding:40px"><i class="fa-solid fa-spinner fa-spin"></i></div>';const r=await fetch(`/api/files/${id}`);const j=await r.json();filesList.innerHTML=j.files.map((f,idx)=>{let icon='fa-file',cls='doc';if(IMG.includes(f.ext)){icon='fa-file-image';cls='img'}else if(VID.includes(f.ext)){icon='fa-file-video';cls='vid'}else if(AUD.includes(f.ext)){icon='fa-file-audio';cls='aud'}else if(f.ext==='pdf'){icon='fa-file-pdf'}else if(['zip','rar','7z'].includes(f.ext)){icon='fa-file-zipper';cls='arc'};return`<div class="file-item"><div class="file-icon ${cls}"><i class="fa-solid ${icon}"></i></div><div class="file-info"><div class="file-name">${f.name}</div><div class="file-size">${f.size?Math.round(f.size/1024/1024*10)/10+' MB':''}</div></div><button class="menu-btn" onclick="toggleMenu(event,'menu${idx}')"><i class="fa-solid fa-ellipsis-vertical"></i></button><div class="action-menu" id="menu${idx}"><div class="menu-item" onclick="openViewer('${f.url}','${f.name}','${f.ext}')"><i class="fa-solid fa-eye"></i>View</div><div class="menu-item" onclick="window.open('${f.url}','_blank')"><i class="fa-solid fa-download"></i>Download</div><div class="menu-item" onclick="copyLink('${f.url}')"><i class="fa-solid fa-link"></i>Copy Link</div><div class="menu-item" onclick="shareFile('${f.url}','${f.name}')"><i class="fa-solid fa-share-nodes"></i>Share</div><div class="menu-item" onclick="showInfo('${f.name}','${f.size}','${f.url}','${f.ext}')"><i class="fa-solid fa-circle-info"></i>Info</div><div class="menu-item danger" onclick="deleteFile('${id}','${f.name}')"><i class="fa-solid fa-trash"></i>Delete</div></div></div>`}).join('');}
+function toggleMenu(e,id){e.stopPropagation();if(currentMenu&&currentMenu!==id)document.getElementById(currentMenu).classList.remove('show');const m=document.getElementById(id);m.classList.toggle('show');currentMenu=m.classList.contains('show')?id:null}
+document.addEventListener('click',()=>{if(currentMenu){document.getElementById(currentMenu).classList.remove('show');currentMenu=null}})
 function backToItems(){filesView.classList.add('hidden');itemsView.classList.remove('hidden')}
 function openViewer(url,name,ext){viewer.classList.add('active');viewerTitle.textContent=name;viewerBody.innerHTML='';if(player){player.destroy();player=null}if(IMG.includes(ext)){viewerBody.innerHTML=`<img src="${url}">`}else if(VID.includes(ext)||AUD.includes(ext)){const t=VID.includes(ext)?'video':'audio';viewerBody.innerHTML=`<${t} id="plyr" playsinline controls><source src="${url}"></${t}>`;player=new Plyr('#plyr',{controls:['play-large','play','progress','current-time','duration','mute','volume','settings','pip','airplay','fullscreen'],settings:['speed','quality'],speed:{selected:1,options:[0.5,0.75,1,1.25,1.5,1.75,2]}})}else if(PDF.includes(ext)){viewerBody.innerHTML=`<iframe src="${url}" style="width:100%;height:100%;border:none;background:white"></iframe>`}}
 function closeViewer(){viewer.classList.remove('active');if(player){player.destroy();player=null}}
+function copyLink(url){navigator.clipboard.writeText(url);showToast('Link copied')}
+function shareFile(url,name){if(navigator.share){navigator.share({title:name,url:url})}else{copyLink(url)}}
+function showInfo(name,size,url,ext){infoContent.innerHTML=`<div><strong>Name:</strong> ${name}</div><div><strong>Size:</strong> ${size?Math.round(size/1024/1024*10)/10+' MB':'Unknown'}</div><div><strong>Type:</strong> ${ext.toUpperCase()}</div><div style="margin-top:12px;word-break:break-all;font-size:12px"><strong>URL:</strong><br>${url}</div>`;infoModal.classList.add('show')}
+function closeInfo(e){if(!e||e.target.id==='infoModal')infoModal.classList.remove('show')}
+async function deleteFile(id,name){if(!confirm(`Delete ${name}?`))return;await fetch(`/api/files/${id}/${encodeURIComponent(name)}`,{method:'DELETE'});showToast('Deleted');showFiles(id)}
 function showToast(m,e){toast.textContent=m;toast.style.borderColor=e?'#ef4444':'#10b981';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}
-document.addEventListener('keydown',e=>e.key==='Escape'&&closeViewer());
 </script>
 </body>
 </html>
