@@ -245,6 +245,38 @@ app.post('/api/upload-url', authMiddleware, async (req, res) => {
   }
 });
 
+
+// Cloudflare-cacheable stream proxy
+app.get('/api/stream/:id/*', authMiddleware, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const file = req.params[0];
+    const url = `https://archive.org/download/${encodeURIComponent(id)}/${encodeURIComponent(file)}`;
+    
+    // Set Cloudflare cache headers - 1 year immutable
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('CDN-Cache-Control', 'max-age=31536000');
+    res.setHeader('Cloudflare-CDN-Cache-Control', 'max-age=31536000');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    const response = await axios({
+      method: 'get',
+      url,
+      responseType: 'stream',
+      timeout: 0
+    });
+    
+    // Forward content type and length
+    if (response.headers['content-type']) res.setHeader('Content-Type', response.headers['content-type']);
+    if (response.headers['content-length']) res.setHeader('Content-Length', response.headers['content-length']);
+    if (response.headers['accept-ranges']) res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+    
+    response.data.pipe(res);
+  } catch (err) {
+    res.status(500).json({ error: 'Stream failed' });
+  }
+});
+
 // Fallback to SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
