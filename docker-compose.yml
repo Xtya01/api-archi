@@ -1,13 +1,15 @@
 version: '3.8'
-
 services:
   archive-drive:
-    build: .
+    image: node:20-slim
+    working_dir: /app
+    command: sh -c "npm install && node server.js"
     ports:
       - "3000:3000"
     environment:
       - IA_ACCESS_KEY=${IA_ACCESS_KEY}
       - IA_SECRET_KEY=${IA_SECRET_KEY}
       - IA_EMAIL=${IA_EMAIL}
-      - PORT=3000
+    volumes:
+      - /data/compose/11:/app  # Portainer will mount your repo here automatically
     restart: unless-stopped
