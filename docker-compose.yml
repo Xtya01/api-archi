@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  archive-drive:
+    build: .
+    container_name: archive-drive
+    ports:
+      - "1003:3000"
+    environment:
+      - IA_ACCESS_KEY=${IA_ACCESS_KEY}
+      - IA_SECRET_KEY=${IA_SECRET_KEY}
+      - IA_EMAIL=${IA_EMAIL}
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASS=${ADMIN_PASS:-archive123}
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-secret}
+    restart: unless-stopped

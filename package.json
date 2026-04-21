@@ -1,0 +1,16 @@
+{
+  "name": "archive-drive",
+  "version": "6.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.2",
+    "express-session": "^1.18.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-storage": "^3.600.0",
+    "axios": "^1.7.2"
+  }
+}
