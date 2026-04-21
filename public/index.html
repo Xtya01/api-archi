@@ -3,189 +3,426 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Archive Drive v6.2</title>
+<title>Archive Drive</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
-:root{--bg:#0a0e14;--sidebar:#0f172a;--card:#141b23;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--primary:#3b82f6;--success:#10b981;--danger:#ef4444}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+:root{--bg:#0b0f1a;--sidebar:#111827;--card:#1f2937;--card-hover:#374151;--border:#374151;--text:#f9fafb;--muted:#9ca3af;--primary:#6366f1;--primary-hover:#4f46e5}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
 .hidden{display:none!important}
 
-/* Login (unchanged) */
-#login{height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,#1e293b 0%,#0a0e14 100%)}
-.login-box{background:var(--card);padding:40px;border-radius:16px;width:100%;max-width:360px;border:1px solid var(--border)}
-.login-box h1{font-size:24px;margin-bottom:8px;background:linear-gradient(135deg,var(--primary),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-input{width:100%;padding:12px 14px;background:#0f172a;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px}
-input:focus{outline:none;border-color:var(--primary)}
-button{width:100%;padding:12px;background:var(--primary);border:0;border-radius:8px;color:#fff;font-weight:500;cursor:pointer;font-size:14px}
-.error{color:var(--danger);font-size:13px;margin-top:8px;min-height:18px}
+/* Login */
+#login{height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b0f1a 0%,#1e1b4b 100%)}
+.login-card{background:rgba(31,41,55,.8);backdrop-filter:blur(20px);padding:48px 40px;border-radius:24px;width:100%;max-width:380px;border:1px solid rgba(255,255,255,.1);box-shadow:0 25px 50px -12px rgba(0,0,0,.5)}
+.login-logo{width:56px;height:56px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:24px}
+.login-title{text-align:center;font-size:24px;font-weight:600;margin-bottom:8px}
+.login-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:32px}
+.input-group{position:relative;margin-bottom:16px}
+.input-group i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.input-group input{width:100%;padding:12px 14px 12px 40px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;transition:all.2s}
+.input-group input:focus{outline:none;border-color:var(--primary);background:rgba(0,0,0,.5)}
+.btn-primary{width:100%;padding:12px;background:var(--primary);border:0;border-radius:12px;color:#fff;font-weight:500;cursor:pointer;transition:all.2s;font-size:14px;margin-top:8px}
+.btn-primary:hover{background:var(--primary-hover);transform:translateY(-1px)}
+.error{color:#ef4444;font-size:13px;margin-top:12px;text-align:center;min-height:18px}
 
 /* App Layout */
 #app{height:100vh;display:flex}
-.sidebar{width:260px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform .3s;z-index:100}
-.sidebar-header{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
-.logo-text{font-weight:600;font-size:18px}
+.sidebar{width:280px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform.3s;z-index:50}
+.sidebar-header{padding:24px 20px;border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),#8b5cf6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand-text{font-weight:600;font-size:18px}
 .sidebar-nav{flex:1;padding:16px;overflow-y:auto}
-.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;cursor:pointer;margin-bottom:4px;color:var(--muted);transition:all .2s;font-size:14px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;cursor:pointer;margin-bottom:4px;color:var(--muted);transition:all.2s;font-size:14px;font-weight:500}
 .nav-item:hover{background:rgba(255,255,255,.05);color:var(--text)}
-.nav-item.active{background:var(--primary);color:#fff}
-.nav-icon{width:20px;text-align:center;font-size:18px}
-.sidebar-footer{padding:16px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)}
+.nav-item.active{background:var(--primary);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.nav-item i{width:20px;text-align:center;font-size:16px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;background:rgba(0,0,0,.2);cursor:pointer}
+.user-avatar{width:32px;height:32px;background:var(--card);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-email{font-size:11px;color:var(--muted)}
 
-/* Main content */
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-.topbar{height:56px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
-.menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:18px}
-.topbar-title{font-weight:500;flex:1}
-.topbar-status{font-size:12px;color:var(--muted)}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+.topbar{height:64px;background:rgba(17,24,39,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:40}
+.menu-btn{display:none;width:40px;height:40px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;align-items:center;justify-content:center}
+.page-title{font-size:20px;font-weight:600;flex:1}
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.status-badge{padding:6px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.status-dot{width:6px;height:6px;background:#10b981;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .content{flex:1;overflow:auto;padding:24px}
 
-/* Responsive */
-@media (max-width:768px){
-  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
-  .sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.5)}
-  .menu-btn{display:flex;align-items:center;justify-content:center}
-  .content{padding:16px}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;display:none}
-  .overlay.show{display:block}
+/* Mobile */
+@media (max-width:1024px){
+ .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);box-shadow:4px 0 24px rgba(0,0,0,.5)}
+ .sidebar.open{transform:translateX(0)}
+ .menu-btn{display:flex}
+ .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:40;display:none}
+ .overlay.show{display:block}
+ .content{padding:16px}
+ .topbar{padding:0 16px}
 }
 
-/* Components (grid, cards, etc - same as before but compact) */
-.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.search-box{flex:1;min-width:200px;position:relative}
-.search-box input{padding-left:36px;margin:0}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
-@media (max-width:480px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s}
-.card:hover{border-color:var(--primary);transform:translateY(-2px)}
-.card-icon{width:40px;height:40px;background:#0f172a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
-.card-title{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
-.card-meta{font-size:11px;color:var(--muted)}
-.list-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer}
-.list-item:hover{border-color:var(--primary)}
-.upload-area{border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:20px}
-.upload-area:hover{border-color:var(--primary)}
-.empty{padding:60px 20px;text-align:center;color:var(--muted)}
-.loading{display:flex;justify-content:center;padding:40px}
-.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite}
+/* Components */
+.toolbar{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.search-wrapper{flex:1;min-width:280px;position:relative}
+.search-wrapper i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.search-input{width:100%;padding:11px 14px 11px 40px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;transition:all.2s}
+.search-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.btn{padding:10px 18px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-weight:500;cursor:pointer;transition:all.2s;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{background:var(--card-hover);border-color:var(--primary)}
+.btn-primary-solid{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-primary-solid:hover{background:var(--primary-hover)}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+@media (max-width:640px){.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:all.3s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--primary),#8b5cf6);transform:scaleX(0);transition:transform.3s}
+.card:hover{transform:translateY(-4px);border-color:rgba(99,102,241,.5);box-shadow:0 12px 24px -8px rgba(0,0,0,.5)}
+.card:hover::before{transform:scaleX(1)}
+.card-icon{width:48px;height:48px;background:rgba(99,102,241,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--primary);margin-bottom:14px}
+.card-title{font-weight:500;font-size:14px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted)}
+.card-meta span{display:flex;align-items:center;gap:4px}
+
+/* Upload */
+.upload-zone{border:2px dashed var(--border);border-radius:20px;padding:64px 24px;text-align:center;background:var(--card);cursor:pointer;transition:all.3s;margin-bottom:24px}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--primary);background:rgba(99,102,241,.05);transform:scale(1.01)}
+.upload-zone i{font-size:48px;color:var(--primary);margin-bottom:16px;opacity:.8}
+.upload-zone h3{font-size:18px;margin-bottom:8px}
+.upload-zone p{color:var(--muted);font-size:14px}
+
+/* States */
+.empty-state{padding:80px 20px;text-align:center}
+.empty-state i{font-size:64px;color:var(--border);margin-bottom:20px}
+.empty-state h3{font-size:18px;margin-bottom:8px;color:var(--text)}
+.empty-state p{color:var(--muted);font-size:14px}
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);padding:12px 16px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateY(100px);opacity:0;transition:all .3s;z-index:1000;font-size:13px;max-width:280px}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.success{border-left:3px solid var(--success)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);padding:14px 18px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);transform:translateX(400px);transition:transform.3s;z-index:100;display:flex;align-items:center;gap:12px;max-width:340px}
+.toast.show{transform:translateX(0)}
+.toast i{font-size:18px}
+.toast.success i{color:#10b981}
+.toast.error i{color:#ef4444}
 </style>
 </head>
 <body>
 
 <div id="login">
-  <div class="login-box">
-    <h1>Archive Drive</h1>
-    <p style="color:var(--muted);font-size:14px;margin-bottom:24px">Private cloud v6.2</p>
-    <input id="user" placeholder="Username" value="admin">
-    <input id="pass" type="password" placeholder="Password" value="Admin@2330">
-    <button onclick="login()">Sign In</button>
+  <div class="login-card">
+    <div class="login-logo"><i class="fas fa-cloud-arrow-up"></i></div>
+    <h1 class="login-title">Archive Drive</h1>
+    <p class="login-sub">Sign in to your private cloud</p>
+    <div class="input-group"><i class="fas fa-user"></i><input id="user" placeholder="Username" value="admin"></div>
+    <div class="input-group"><i class="fas fa-lock"></i><input id="pass" type="password" placeholder="Password" value="Admin@2330"></div>
+    <button class="btn-primary" onclick="login()"><i class="fas fa-sign-in-alt"></i> Sign In</button>
     <div id="loginErr" class="error"></div>
   </div>
 </div>
 
 <div id="app" class="hidden">
-  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
-  
+  <div class="overlay" id="overlay" onclick="toggleNav(false)"></div>
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="logo-icon">A</div>
-      <div class="logo-text">Archive Drive</div>
+      <div class="brand">
+        <div class="brand-icon"><i class="fas fa-database"></i></div>
+        <div class="brand-text">Archive Drive</div>
+      </div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-item active" data-page="drive" onclick="goPage('drive')">
-        <span class="nav-icon">📁</span><span>Drive</span>
-      </div>
-      <div class="nav-item" data-page="my" onclick="goPage('my')">
-        <span class="nav-icon">☁</span><span>My Uploads</span>
-      </div>
-      <div class="nav-item" data-page="upload" onclick="goPage('upload')">
-        <span class="nav-icon">⬆</span><span>Upload</span>
-      </div>
-      <div class="nav-item" data-page="search" onclick="goPage('search')">
-        <span class="nav-icon">⌕</span><span>Search</span>
-      </div>
+      <div class="nav-item active" data-page="drive" onclick="navigate('drive')"><i class="fas fa-folder-open"></i><span>Drive</span></div>
+      <div class="nav-item" data-page="my" onclick="navigate('my')"><i class="fas fa-cloud"></i><span>My Uploads</span></div>
+      <div class="nav-item" data-page="upload" onclick="navigate('upload')"><i class="fas fa-upload"></i><span>Upload</span></div>
+      <div class="nav-item" data-page="search" onclick="navigate('search')"><i class="fas fa-search"></i><span>Search</span></div>
     </nav>
     <div class="sidebar-footer">
-      <div>namaycb</div>
-      <div style="margin-top:4px;cursor:pointer" onclick="logout()">Logout →</div>
+      <div class="user-card" onclick="logout()">
+        <div class="user-avatar"><i class="fas fa-user"></i></div>
+        <div class="user-info"><div class="user-name">admin</div><div class="user-email">namaycb</div></div>
+        <i class="fas fa-sign-out-alt" style="color:var(--muted);font-size:12px"></i>
+      </div>
     </div>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-      <div class="topbar-title" id="pageTitle">Drive</div>
-      <div class="topbar-status" id="status">Ready</div>
+      <button class="menu-btn" onclick="toggleNav()"><i class="fas fa-bars"></i></button>
+      <h1 class="page-title" id="pageTitle">Drive</h1>
+      <div class="topbar-actions">
+        <div class="status-badge"><span class="status-dot"></span><span id="statusText">Connected</span></div>
+      </div>
     </div>
-    
+
     <div class="content">
-      <!-- Drive Page -->
       <div id="page-drive">
         <div class="toolbar">
-          <div class="search-box">
-            <span class="search-icon">⌕</span>
-            <input id="searchInput" placeholder="Enter identifier..." onkeypress="if(event.key==='Enter')loadDrive()">
+          <div class="search-wrapper">
+            <i class="fas fa-search"></i>
+            <input class="search-input" id="driveSearch" placeholder="Enter Archive.org identifier..." onkeypress="if(event.key==='Enter')loadDrive()">
           </div>
-          <button onclick="loadDrive()" style="width:auto;padding:10px 20px">Load</button>
+          <button class="btn btn-primary-solid" onclick="loadDrive()"><i class="fas fa-folder-open"></i> Load</button>
         </div>
-        <div id="driveGrid"></div>
+        <div id="driveContent">
+          <div class="empty-state"><i class="fas fa-folder-open"></i><h3>No folder opened</h3><p>Enter an identifier above or visit My Uploads</p></div>
+        </div>
       </div>
 
-      <!-- My Uploads Page -->
       <div id="page-my" class="hidden">
-        <div id="myGrid"><div class="loading"><div class="spinner"></div></div></div>
+        <div id="myContent"><div class="loading-state"><div class="spinner"></div><p>Loading your uploads...</p></div></div>
       </div>
 
-      <!-- Upload Page -->
       <div id="page-upload" class="hidden">
-        <div class="upload-area" onclick="fileInput.click()">
-          <div style="font-size:36px;margin-bottom:12px;opacity:.5">⬆</div>
-          <div>Tap to select files</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px">Max 5GB • Archive.org storage</div>
+        <div class="upload-zone" id="dropZone" onclick="fileInput.click()">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <h3>Drop files here</h3>
+          <p>or click to browse • Up to 5GB per file</p>
         </div>
-        <input type="file" id="fileInput" class="hidden" multiple onchange="uploadFiles(this.files)">
-        <input id="customId" placeholder="Custom identifier (optional)" style="margin-bottom:16px">
-        <div id="uploadList"></div>
+        <input type="file" id="fileInput" hidden multiple onchange="handleUpload(this.files)">
+        <div style="margin-bottom:20px"><input class="search-input" id="customId" placeholder="Custom identifier (optional)"></div>
+        <div id="uploadQueue"></div>
       </div>
 
-      <!-- Search Page -->
       <div id="page-search" class="hidden">
         <div class="toolbar">
-          <div class="search-box" style="flex:1">
-            <span class="search-icon">⌕</span>
-            <input id="globalSearch" placeholder="Search your uploads..." onkeypress="if(event.key==='Enter')doSearch()">
+          <div class="search-wrapper" style="flex:1">
+            <i class="fas fa-search"></i>
+            <input class="search-input" id="globalSearch" placeholder="Search your Archive.org items..." onkeypress="if(event.key==='Enter')doSearch()">
           </div>
         </div>
-        <div id="searchResults"></div>
+        <div id="searchResults"><div class="empty-state"><i class="fas fa-search"></i><h3>Search your uploads</h3></div></div>
       </div>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast"><i class="fas fa-check-circle"></i><span></span></div>
 
 <script>
-const API=''; let token=localStorage.getItem('ad_token');
-if(token){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadMy();}
+// CONFIG - Fix backend connection
+const API_BASE = window.location.origin; // Uses same host:port as frontend
+let authToken = localStorage.getItem('archive_token');
 
-function toggleSidebar(force){const s=document.getElementById('sidebar'),o=document.getElementById('overlay');const open=force!==undefined?force:!s.classList.contains('open');s.classList.toggle('open',open);o.classList.toggle('show',open);}
-function goPage(p){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===p));document.querySelectorAll('[id^="page-"]').forEach(pg=>pg.classList.add('hidden'));document.getElementById('page-'+p).classList.remove('hidden');document.getElementById('pageTitle').textContent=p.charAt(0).toUpperCase()+p.slice(1).replace('my','My Uploads');toggleSidebar(false);if(p==='my')loadMy();}
-async function login(){try{const r=await fetch(`${API}/api/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user.value,password:pass.value})});const d=await r.json();if(d.token){token=d.token;localStorage.setItem('ad_token',token);login.classList.add('hidden');app.classList.remove('hidden');loadMy();showToast('Logged in')}else{loginErr.textContent='Invalid'}}catch(e){loginErr.textContent=e.message}}
-function logout(){localStorage.clear();location.reload()}
-function showToast(m){const t=toast;t.textContent=m;t.className='toast success show';setTimeout(()=>t.classList.remove('show'),2500)}
-function apiH(){return{'Authorization':'Bearer '+token}}
-function fmt(b){if(!b)return'0';const u=['B','KB','MB','GB'];let i=0;while(b>=1024&&i<3){b/=1024;i++}return b.toFixed(1)+u[i]}
-function icon(n){const e=n.split('.').pop().toLowerCase();return['mp4','mkv','avi'].includes(e)?'🎬':['mp3','wav'].includes(e)?'🎵':['jpg','png','gif'].includes(e)?'🖼':'pdf'===e?'📄':'📄'}
+// Initialize
+if (authToken) {
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  testConnection();
+}
 
-async function loadDrive(){const id=searchInput.value.trim();if(!id)return;driveGrid.innerHTML='<div class="loading"><div class="spinner"></div></div>';try{const r=await fetch(`${API}/api/files/${id}`,{headers:apiH()});const d=await r.json();status.textContent=d.files.length+' files';driveGrid.innerHTML=`<div class="grid">${d.files.map(f=>`<div class="card" onclick="window.open('${f.url}')"><div class="card-icon">${icon(f.name)}</div><div class="card-title" title="${f.name}">${f.name}</div><div class="card-meta">${fmt(f.size)}</div></div>`).join('')}</div>`}catch(e){driveGrid.innerHTML=`<div class="empty">Error: ${e.message}</div>`}}
-async function loadMy(){myGrid.innerHTML='<div class="loading"><div class="spinner"></div></div>';try{const r=await fetch(`${API}/api/myitems`,{headers:apiH()});const d=await r.json();myGrid.innerHTML=`<div class="grid">${d.items.map(i=>`<div class="card" onclick="searchInput.value='${i.identifier}';goPage('drive');loadDrive()"><div class="card-icon">📁</div><div class="card-title">${i.title}</div><div class="card-meta">${new Date(i.date).toLocaleDateString()}</div></div>`).join('')}</div>`;status.textContent=d.total+' items'}catch(e){myGrid.innerHTML='<div class="empty">Failed to load</div>'}}
-async function uploadFiles(files){for(const f of files){const item=document.createElement('div');item.className='list-item';item.innerHTML=`<div>⬆</div><div style="flex:1"><div>${f.name}</div><div style="font-size:12px;color:var(--muted)">Uploading...</div></div>`;uploadList.prepend(item);const fd=new FormData();fd.append('file',f);const cid=customId.value.trim();if(cid)fd.append('identifier',cid);try{const r=await fetch(`${API}/api/upload`,{method:'POST',headers:apiH(),body:fd});const d=await r.json();item.querySelector('div:last-child div:last-child').textContent=d.success?'Done: '+d.identifier:'Failed';showToast(d.success?'Uploaded':'Failed')}catch(e){item.querySelector('div:last-child div:last-child').textContent='Error'}}}
-async function doSearch(){const q=globalSearch.value.trim();if(!q)return;searchResults.innerHTML='<div class="loading"><div class="spinner"></div></div>';const r=await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`,{headers:apiH()});const d=await r.json();searchResults.innerHTML=`<div class="grid">${d.items.map(i=>`<div class="card" onclick="searchInput.value='${i.identifier}';goPage('drive');loadDrive()"><div class="card-icon">📁</div><div class="card-title">${i.title||i.identifier}</div></div>`).join('')}</div>`}
+function toggleNav(force) {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const isOpen = force!== undefined? force :!sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', isOpen);
+  overlay.classList.toggle('show', isOpen);
+}
+
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.getElementById('pageTitle').textContent = {drive:'Drive',my:'My Uploads',upload:'Upload',search:'Search'}[page];
+  toggleNav(false);
+  if (page === 'my') loadMyUploads();
+}
+
+async function testConnection() {
+  try {
+    const res = await fetch(`${API_BASE}/health`);
+    if (res.ok) {
+      document.getElementById('statusText').textContent = 'Connected';
+      showToast('Backend connected', 'success');
+    }
+  } catch (e) {
+    document.getElementById('statusText').textContent = 'Offline';
+    showToast('Cannot reach backend', 'error');
+  }
+}
+
+async function login() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+  try {
+    const res = await fetch(`${API_BASE}/api/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: document.getElementById('user').value, password: document.getElementById('pass').value})
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    authToken = data.token;
+    localStorage.setItem('archive_token', authToken);
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    showToast('Welcome back!', 'success');
+    testConnection();
+  } catch (e) {
+    document.getElementById('loginErr').textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('archive_token');
+  location.reload();
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.querySelector('span').textContent = msg;
+  toast.querySelector('i').className = type === 'success'? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+  toast.className = `toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function authHeaders() {
+  return {'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json'};
+}
+
+function formatBytes(b) {
+  if (!b) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while (b >= 1024 && i < 4) { b /= 1024; i++; }
+  return b.toFixed(1) + ' ' + units[i];
+}
+
+function fileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const icons = {mp4:'fa-film',mkv:'fa-film',avi:'fa-film',mp3:'fa-music',wav:'fa-music',jpg:'fa-image',jpeg:'fa-image',png:'fa-image',gif:'fa-image',pdf:'fa-file-pdf',zip:'fa-file-archive',rar:'fa-file-archive'};
+  return icons[ext] || 'fa-file';
+}
+
+async function loadDrive() {
+  const id = document.getElementById('driveSearch').value.trim();
+  if (!id) return;
+
+  const container = document.getElementById('driveContent');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading files...</p></div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/files/${encodeURIComponent(id)}`, {headers: authHeaders()});
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    const data = await res.json();
+
+    if (!data.files?.length) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><h3>Empty folder</h3><p>No files found</p></div>';
+      return;
+    }
+
+    container.innerHTML = `<div class="grid">${data.files.map(f => `
+      <div class="card" onclick="window.open('${f.url}','_blank')">
+        <div class="card-icon"><i class="fas ${fileIcon(f.name)}"></i></div>
+        <div class="card-title" title="${f.name}">${f.name}</div>
+        <div class="card-meta">
+          <span><i class="fas fa-hdd"></i> ${formatBytes(f.size)}</span>
+          <span><i class="fas fa-download"></i> Open</span>
+        </div>
+      </div>
+    `).join('')}</div>`;
+    document.getElementById('statusText').textContent = `${data.files.length} files`;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Connection failed</h3><p>${e.message} - Check backend is running on port 3000</p></div>`;
+    showToast('Backend error: ' + e.message, 'error');
+  }
+}
+
+async function loadMyUploads() {
+  const container = document.getElementById('myContent');
+  container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/myitems`, {headers: authHeaders()});
+    if (!res.ok) throw new Error(`Server ${res.status}`);
+    const data = await res.json();
+
+    if (!data.items?.length) {
+      container.innerHTML = '<div class="empty-state"><i class="fas fa-cloud-arrow-up"></i><h3>No uploads yet</h3><p>Go to Upload to add files</p></div>';
+      return;
+    }
+
+    container.innerHTML = `<div class="grid">${data.items.map(item => `
+      <div class="card" onclick="document.getElementById('driveSearch').value='${item.identifier}';navigate('drive');loadDrive()">
+        <div class="card-icon"><i class="fas fa-folder"></i></div>
+        <div class="card-title" title="${item.title}">${item.title}</div>
+        <div class="card-meta">
+          <span><i class="fas fa-calendar"></i> ${new Date(item.date).toLocaleDateString()}</span>
+          <span><i class="fas fa-hdd"></i> ${formatBytes(item.size)}</span>
+        </div>
+      </div>
+    `).join('')}</div>`;
+  } catch (e) {
+    container.innerHTML = `<div class="empty-state"><i class="fas fa-wifi"></i><h3>Cannot connect</h3><p>${e.message}</p></div>`;
+    showToast('Failed to load uploads', 'error');
+  }
+}
+
+// Upload handling
+const dropZone = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => {ev.preventDefault(); dropZone.classList.add('dragover');}));
+['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {ev.preventDefault(); dropZone.classList.remove('dragover');}));
+dropZone.addEventListener('drop', ev => handleUpload(ev.dataTransfer.files));
+
+async function handleUpload(files) {
+  for (const file of files) {
+    const item = document.createElement('div');
+    item.className = 'card';
+    item.style.cursor = 'default';
+    item.innerHTML = `<div class="card-icon"><i class="fas fa-spinner fa-spin"></i></div><div class="card-title">${file.name}</div><div class="card-meta">Uploading...</div>`;
+    document.getElementById('uploadQueue').prepend(item);
+
+    const form = new FormData();
+    form.append('file', file);
+    const customId = document.getElementById('customId').value.trim();
+    if (customId) form.append('identifier', customId);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: {'Authorization': `Bearer ${authToken}`},
+        body: form
+      });
+      const data = await res.json();
+      if (data.success) {
+        item.innerHTML = `<div class="card-icon" style="color:#10b981"><i class="fas fa-check-circle"></i></div><div class="card-title">${file.name}</div><div class="card-meta">Uploaded to ${data.identifier}</div>`;
+        showToast('Upload complete', 'success');
+      } else throw new Error(data.error);
+    } catch (e) {
+      item.innerHTML = `<div class="card-icon" style="color:#ef4444"><i class="fas fa-times-circle"></i></div><div class="card-title">${file.name}</div><div class="card-meta">Failed</div>`;
+      showToast('Upload failed', 'error');
+    }
+  }
+}
+
+async function doSearch() {
+  const q = document.getElementById('globalSearch').value.trim();
+  if (!q) return;
+  const results = document.getElementById('searchResults');
+  results.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q)}`, {headers: authHeaders()});
+    const data = await res.json();
+    results.innerHTML = `<div class="grid">${data.items.map(i => `<div class="card" onclick="document.getElementById('driveSearch').value='${i.identifier}';navigate('drive');loadDrive()"><div class="card-icon"><i class="fas fa-folder"></i></div><div class="card-title">${i.title||i.identifier}</div></div>`).join('')}</div>`;
+  } catch (e) {
+    results.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation"></i><h3>Search failed</h3></div>';
+  }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleNav(false); });
 </script>
 </body>
 </html>
