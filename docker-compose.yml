@@ -1,15 +1,12 @@
 version: '3.8'
-
 services:
   archive-drive:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
     ports:
-            - "3000:3000"   # <-- THIS LINE IS MISSING IN YOUR DEPLOYMENT
+      - "3000:3000"
     environment:
-            - IA_ACCESS_KEY=${IA_ACCESS_KEY}
-            - IA_SECRET_KEY=${IA_SECRET_KEY}
-            - IA_EMAIL=${IA_EMAIL}
-            - PORT=3000
+      - IA_ACCESS_KEY=${IA_ACCESS_KEY}
+      - IA_SECRET_KEY=${IA_SECRET_KEY}
+      - IA_EMAIL=${IA_EMAIL}
+      - PORT=3000
     restart: unless-stopped
