@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+<link rel="preconnect" href="https://cdn.plyr.io">
+<link rel="preconnect" href="https://archive.org">
 <style>
 :root {
   --bg: #0b0f1a;
@@ -276,6 +279,55 @@ body {
 .toast.success i { color: var(--green); }
 .toast.error i { color: #ef4444; }
 
+
+/* Action Menu */
+.file-actions { position: relative; }
+.action-btn {
+  background: none; border: none; color: var(--text-muted);
+  padding: 6px 8px; cursor: pointer; border-radius: 6px;
+}
+.action-btn:hover { background: #0f172a; color: white; }
+.action-menu {
+  position: absolute; right: 0; top: 28px;
+  background: var(--sidebar); border: 1px solid var(--border);
+  border-radius: 10px; min-width: 180px; z-index: 20;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none;
+  overflow: hidden;
+}
+.action-menu.show { display: block; }
+.action-menu-item {
+  padding: 10px 14px; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text); transition: background 0.15s;
+}
+.action-menu-item:hover { background: var(--card); }
+.action-menu-item i { width: 16px; color: var(--text-muted); }
+
+/* Preview Modal */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: var(--sidebar); border: 1px solid var(--border);
+  border-radius: 16px; width: 100%; max-width: 1100px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-weight: 600; font-size: 15px; }
+.modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
+.modal-body { flex: 1; overflow: auto; background: #000; display: flex; align-items: center; justify-content: center; }
+.modal-body img { max-width: 100%; max-height: 80vh; object-fit: contain; }
+.modal-body iframe { width: 100%; height: 80vh; border: none; background: white; }
+.modal-body pre { width: 100%; height: 100%; padding: 20px; overflow: auto; background: #0b0f1a; color: #e5e7eb; font-family: 'SF Mono', monospace; font-size: 13px; margin: 0; }
+.plyr { width: 100%; max-height: 80vh; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); }
@@ -375,7 +427,19 @@ body {
         </div>
       </div>
     </div>
-  </main>
+  
+<!-- Preview Modal -->
+<div id="previewModal" class="modal" onclick="if(event.target===this) closePreview()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="previewTitle">Preview</div>
+      <button class="modal-close" onclick="closePreview()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
+
+</main>
 </div>
 
 <script>
@@ -485,18 +549,29 @@ async function browseDrive() {
       out.innerHTML = '<div class="empty"><i class="fa-regular fa-file"></i><p>No files found</p></div>';
       return;
     }
-    out.innerHTML = `<div class="file-list">${d.files.map(f => `
+    out.innerHTML = `<div class="file-list">${d.files.map((f, i) => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      const isMedia = ['mp4','webm','mkv','mov','mp3','wav','ogg','flac','m4a','aac'].includes(ext);
+      const isImage = ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext);
+      const streamUrl = `/api/stream/${id}/${encodeURIComponent(f.name)}`;
+      return `
       <div class="file-item">
-        <div class="file-icon"><i class="fa-regular fa-file"></i></div>
-        <div class="file-info">
+        <div class="file-icon"><i class="fa-regular fa-${isMedia?'circle-play':isImage?'image':'file'}"></i></div>
+        <div class="file-info" onclick="previewFile('${id}', \`${f.name.replace(/`/g,'\`')}\`, '${ext}', '${streamUrl}')" style="cursor:pointer">
           <div class="file-name">${f.name}</div>
-          <div class="file-size">${formatSize(f.size)}</div>
+          <div class="file-size">${formatSize(f.size)} • Cloudflare cached</div>
         </div>
         <div class="file-actions">
-          <a href="${f.url}" target="_blank" title="Download"><i class="fa-solid fa-download"></i></a>
+          <button class="action-btn" onclick="toggleMenu(event, ${i})"><i class="fa-solid fa-ellipsis"></i></button>
+          <div class="action-menu" id="menu-${i}">
+            <div class="action-menu-item" onclick="previewFile('${id}', \`${f.name.replace(/`/g,'\`')}\`, '${ext}', '${streamUrl}')"><i class="fa-regular fa-eye"></i> Preview</div>
+            <div class="action-menu-item" onclick="window.open('${f.url}','_blank')"><i class="fa-solid fa-download"></i> Download original</div>
+            <div class="action-menu-item" onclick="copyLink('${streamUrl}')"><i class="fa-solid fa-link"></i> Copy stream link</div>
+            <div class="action-menu-item" onclick="window.open('https://archive.org/download/${id}/${encodeURIComponent(f.name)}','_blank')"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open on Archive.org</div>
+          </div>
         </div>
       </div>
-    `).join('')}</div>`;
+    `}).join('')}</div>`;
   } catch(e) {
     out.innerHTML = `<div style="color:#ef4444">Error: ${e.message}</div>`;
   }
@@ -578,9 +653,69 @@ async function uploadFromUrl() {
   finally { btn.disabled = false; btn.textContent = 'Fetch & Upload'; }
 }
 
+
+// Action menus
+function toggleMenu(e, i) {
+  e.stopPropagation();
+  document.querySelectorAll('.action-menu').forEach(m => m.classList.remove('show'));
+  document.getElementById('menu-'+i).classList.toggle('show');
+}
+document.addEventListener('click', () => document.querySelectorAll('.action-menu').forEach(m => m.classList.remove('show')));
+
+function copyLink(url) {
+  const full = location.origin + url;
+  navigator.clipboard.writeText(full);
+  showToast('Link copied (Cloudflare cached)');
+}
+
+// Preview with Plyr
+let currentPlayer = null;
+function previewFile(id, name, ext, streamUrl) {
+  const modal = document.getElementById('previewModal');
+  const body = document.getElementById('previewBody');
+  const title = document.getElementById('previewTitle');
+  title.textContent = name;
+  body.innerHTML = '<div style="padding:40px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+  modal.classList.add('show');
+  
+  if (currentPlayer) { try { currentPlayer.destroy(); } catch(e){} currentPlayer = null; }
+  
+  const extLower = ext.toLowerCase();
+  const isVideo = ['mp4','webm','mkv','mov'].includes(extLower);
+  const isAudio = ['mp3','wav','ogg','flac','m4a','aac'].includes(extLower);
+  const isImage = ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(extLower);
+  const isPdf = extLower === 'pdf';
+  const isText = ['txt','md','json','js','css','html','xml','csv','log','py','sh'].includes(extLower);
+  
+  if (isVideo || isAudio) {
+    body.innerHTML = `<video id="player" playsinline controls crossorigin><source src="${streamUrl}" type="${isVideo?'video/mp4':'audio/mp3'}"></video>`;
+    currentPlayer = new Plyr('#player', {
+      settings: ['quality','speed'],
+      controls: ['play-large','play','progress','current-time','mute','volume','settings','fullscreen']
+    });
+  } else if (isImage) {
+    body.innerHTML = `<img src="${streamUrl}" alt="${name}" loading="lazy">`;
+  } else if (isPdf) {
+    body.innerHTML = `<iframe src="${streamUrl}"></iframe>`;
+  } else if (isText) {
+    fetch(streamUrl).then(r => r.text()).then(t => {
+      body.innerHTML = `<pre>${t.replace(/</g,'&lt;').slice(0,500000)}</pre>`;
+    }).catch(() => body.innerHTML = '<div style="padding:40px">Cannot preview text</div>');
+  } else {
+    body.innerHTML = `<div style="text-align:center;padding:60px"><i class="fa-regular fa-file" style="font-size:48px;opacity:0.5;margin-bottom:16px"></i><p>No preview available</p><a href="${streamUrl}" target="_blank" class="btn" style="width:auto;display:inline-block;margin-top:16px;padding:10px 20px">Download</a></div>`;
+  }
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('show');
+  if (currentPlayer) { try { currentPlayer.destroy(); } catch(e){} currentPlayer = null; }
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closePreview(); });
+
 // Init
 if (token) initApp();
 document.getElementById('password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 </body>
 </html>
