@@ -8,5 +8,5 @@ services:
       - IA_ACCESS_KEY=${IA_ACCESS_KEY}
       - IA_SECRET_KEY=${IA_SECRET_KEY}
       - IA_EMAIL=${IA_EMAIL}
-      - PORT=3000
+      - NODE_ENV=production
     restart: unless-stopped
