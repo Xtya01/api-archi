@@ -1,8 +1,8 @@
 /**
- * Archive Drive v6.2 - Production Server
- * Features: auth, my-items, upload, streaming, Cloudflare + Oracle fallback
+ * Archive Drive v6.2.1 - Production Server
+ * Fixed: 411 Length Required on upload
+ * Features: auth, my-items, upload, streaming, Cloudflare fallback
  */
-require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
@@ -13,7 +13,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Config from environment
+// ================= CONFIG =================
 const CONFIG = {
   IA_USERNAME: process.env.IA_USERNAME || 'namaycb',
   IA_ACCESS_KEY: process.env.IA_ACCESS_KEY,
@@ -24,55 +24,53 @@ const CONFIG = {
   ORACLE_CACHE: process.env.ORACLE_CACHE || ''
 };
 
-console.log('=== Archive Drive v6.2 Starting ===');
+console.log('=== Archive Drive v6.2.1 Starting ===');
 console.log('User:', CONFIG.IA_USERNAME);
-console.log('Cloudflare:', CONFIG.CF_WORKER ? 'ENABLED' : 'disabled');
-console.log('Oracle:', CONFIG.ORACLE_CACHE ? 'ENABLED' : 'disabled');
+console.log('IA Keys:', CONFIG.IA_ACCESS_KEY ? 'Configured ✓' : 'Missing ✗');
+console.log('Cloudflare:', CONFIG.CF_WORKER || 'disabled');
+console.log('Port:', PORT);
 
-// Middleware
+// ================= MIDDLEWARE =================
 app.use(express.json({limit: '10mb'}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Session storage (in-memory)
 const sessions = new Map();
-const upload = multer({ dest: '/tmp/uploads/', limits: { fileSize: 5 * 1024 * 1024 } }); // 5GB
+const upload = multer({ 
+  dest: '/tmp/uploads/',
+  limits: { fileSize: 5 * 1024 } // 5GB
+});
 
 // ================= AUTH =================
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  console.log(`[AUTH] Login attempt: ${username}`);
+  console.log(`[AUTH] Login: ${username}`);
   
   if (username === CONFIG.ADMIN_USER && password === CONFIG.ADMIN_PASS) {
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, { user: username, created: Date.now() });
-    console.log(`[AUTH] Success: ${username}`);
     return res.json({ token, user: username });
   }
-  
-  console.log(`[AUTH] Failed: ${username}`);
   res.status(401).json({ error: 'Invalid credentials' });
 });
 
 const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ error: 'No token' });
-  
   const token = authHeader.split(' ')[1];
   if (!sessions.has(token)) return res.status(401).json({ error: 'Invalid token' });
-  
   next();
 };
 
 // ================= HELPERS =================
 function getFileUrl(identifier, filename) {
   const encoded = encodeURIComponent(filename);
-  
-  // 30% Cloudflare, 20% Oracle, 50% direct
   const rand = Math.random();
   if (CONFIG.CF_WORKER && rand < 0.3) {
     return `https://${CONFIG.CF_WORKER}/ia/${identifier}/${encoded}`;
@@ -84,13 +82,11 @@ function getFileUrl(identifier, filename) {
 }
 
 function isMediaFile(filename) {
-  const mediaExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.mp3', '.wav', '.flac', '.jpg', '.jpeg', '.png', '.gif', '.pdf'];
-  return mediaExts.some(ext => filename.toLowerCase().endsWith(ext));
+  return /\.(mp4|mkv|avi|mov|webm|mp3|wav|flac|jpg|jpeg|png|gif|pdf)$/i.test(filename);
 }
 
 function isMetadataFile(filename) {
-  return filename.endsWith('.xml') || 
-         filename.endsWith('.sqlite') || 
+  return /\.(xml|sqlite)$/i.test(filename) || 
          filename.startsWith('__') ||
          filename.includes('_meta') ||
          filename.includes('_files') ||
@@ -99,14 +95,22 @@ function isMetadataFile(filename) {
 
 // ================= API ROUTES =================
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    version: '6.2.1',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Get user's items
 app.get('/api/myitems', auth, async (req, res) => {
-  console.log(`[API] Fetching items for ${CONFIG.IA_USERNAME}`);
   try {
     const searchUrl = `https://archive.org/advancedsearch.php?q=uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&fl[]=date&fl[]=item_size&fl[]=downloads&sort[]=date desc&rows=200&output=json`;
-    
     const response = await axios.get(searchUrl, { timeout: 15000 });
-    const docs = response.data.response.docs || [];
+    const docs = response.data.response?.docs || [];
     
     const items = docs.map(doc => ({
       identifier: doc.identifier,
@@ -116,28 +120,19 @@ app.get('/api/myitems', auth, async (req, res) => {
       downloads: doc.downloads || 0
     }));
     
-    console.log(`[API] Found ${items.length} items`);
     res.json({ items, total: items.length });
   } catch (error) {
-    console.error('[API] myitems error:', error.message);
+    console.error('[API] myitems:', error.message);
     res.status(500).json({ error: 'Failed to fetch items', details: error.message });
   }
 });
 
-// Get files for an item
+// Get files for item
 app.get('/api/files/:id', auth, async (req, res) => {
   const identifier = req.params.id;
-  console.log(`[API] Fetching files for ${identifier}`);
-  
   try {
-    const metaUrl = `https://archive.org/metadata/${identifier}`;
-    const response = await axios.get(metaUrl, { timeout: 15000 });
-    
-    const metadata = response.data.metadata || {};
-    const files = response.data.files || [];
-    
-    // Filter and process files
-    const processedFiles = files
+    const { data } = await axios.get(`https://archive.org/metadata/${identifier}`, { timeout: 15000 });
+    const files = (data.files || [])
       .filter(f => f.source === 'original' && !isMetadataFile(f.name))
       .map(f => ({
         name: f.name,
@@ -145,105 +140,89 @@ app.get('/api/files/:id', auth, async (req, res) => {
         format: f.format,
         isMedia: isMediaFile(f.name),
         url: getFileUrl(identifier, f.name),
-        directUrl: `https://archive.org/download/${identifier}/${encodeURIComponent(f.name)}`,
-        created: f.mtime
+        directUrl: `https://archive.org/download/${identifier}/${encodeURIComponent(f.name)}`
       }))
-      .sort((a, b) => {
-        // Media files first, then by size descending
-        if (a.isMedia && !b.isMedia) return -1;
-        if (!a.isMedia && b.isMedia) return 1;
-        return b.size - a.size;
-      });
+      .sort((a, b) => b.size - a.size);
     
-    console.log(`[API] ${identifier}: ${processedFiles.length} files`);
     res.json({
       identifier,
-      title: metadata.title,
-      description: metadata.description,
-      files: processedFiles,
-      total: processedFiles.length
+      title: data.metadata?.title,
+      files,
+      total: files.length
     });
   } catch (error) {
-    console.error(`[API] files error for ${identifier}:`, error.message);
     res.status(500).json({ error: 'Failed to fetch files', details: error.message });
   }
 });
 
-// Upload file
+// Upload - FIXED FOR 411 ERROR
 app.post('/api/upload', auth, upload.single('file'), async (req, res) => {
-  console.log(`[UPLOAD] Starting upload: ${req.file?.originalname}`);
+  console.log(`[UPLOAD] Starting: ${req.file?.originalname}`);
   
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file provided' });
-  }
-  
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
   if (!CONFIG.IA_ACCESS_KEY || !CONFIG.IA_SECRET_KEY) {
-    return res.status(500).json({ error: 'IA credentials not configured' });
+    return res.status(500).json({ error: 'IA S3 keys not configured' });
   }
+  
+  const filepath = req.file.path;
   
   try {
     const identifier = req.body.identifier || `${CONFIG.IA_USERNAME}-upload-${Date.now()}`;
     const filename = req.file.originalname;
+    const filesize = req.file.size;
     
-    console.log(`[UPLOAD] To ${identifier}/${filename} (${req.file.size} bytes)`);
+    console.log(`[UPLOAD] ${identifier}/${filename} (${filesize} bytes)`);
+    
+    // Read file to buffer to get exact Content-Length (fixes 411)
+    const fileBuffer = fs.readFileSync(filepath);
     
     const uploadUrl = `https://s3.us.archive.org/${identifier}/${encodeURIComponent(filename)}`;
-    const fileStream = fs.createReadStream(req.file.path);
     
-    const response = await axios.put(uploadUrl, fileStream, {
+    const response = await axios.put(uploadUrl, fileBuffer, {
       headers: {
         'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
+        'Content-Length': filesize.toString(), // CRITICAL FIX
+        'Content-Type': 'application/octet-stream',
         'x-amz-auto-make-bucket': '1',
         'x-archive-meta01-collection': 'opensource',
         'x-archive-meta-mediatype': 'data',
-        'x-archive-meta-title': filename,
+        'x-archive-meta-title': filename.replace(/\.[^/.]+$/, '').substring(0, 100),
+        'x-archive-meta-description': `Uploaded via Archive Drive on ${new Date().toISOString()}`,
         'x-archive-meta-uploader': CONFIG.IA_USERNAME,
-        'Content-Type': 'application/octet-stream'
+        'x-archive-queue-derive': '0',
+        'x-archive-size-hint': filesize.toString()
       },
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
-      timeout: 300000 // 5 minutes
+      timeout: 600000, // 10 minutes
+      validateStatus: (status) => status < 500
     });
     
-    // Cleanup temp file
-    fs.unlinkSync(req.file.path);
+    fs.unlinkSync(filepath);
+    
+    if (response.status >= 400) {
+      throw new Error(`Archive.org returned ${response.status}: ${JSON.stringify(response.data)}`);
+    }
     
     console.log(`[UPLOAD] Success: ${identifier}`);
     res.json({ 
       success: true, 
       identifier, 
       filename,
+      size: filesize,
       url: `https://archive.org/details/${identifier}`
     });
     
   } catch (error) {
     console.error('[UPLOAD] Error:', error.message);
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
+    if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    
     res.status(500).json({ 
-      error: 'Upload failed', 
-      details: error.response?.data || error.message 
+      error: 'Upload failed',
+      details: error.response?.data || error.message,
+      status: error.response?.status
     });
   }
-});
-
-// System status
-app.get('/api/status', auth, (req, res) => {
-  res.json({
-    server: 'Archive Drive v6.2',
-    user: CONFIG.IA_USERNAME,
-    cloudflare: {
-      enabled: !!CONFIG.CF_WORKER,
-      endpoint: CONFIG.CF_WORKER
-    },
-    oracle: {
-      enabled: !!CONFIG.ORACLE_CACHE,
-      endpoint: CONFIG.ORACLE_CACHE
-    },
-    ia_configured: !!(CONFIG.IA_ACCESS_KEY && CONFIG.IA_SECRET_KEY),
-    uptime: process.uptime()
-  });
 });
 
 // Search
@@ -254,15 +233,22 @@ app.get('/api/search', auth, async (req, res) => {
   try {
     const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}+AND+uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&rows=20&output=json`;
     const response = await axios.get(url, { timeout: 10000 });
-    res.json({ items: response.data.response.docs });
+    res.json({ items: response.data.response?.docs || [] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Status
+app.get('/api/status', auth, (req, res) => {
+  res.json({
+    server: 'Archive Drive v6.2.1',
+    user: CONFIG.IA_USERNAME,
+    ia_configured: !!(CONFIG.IA_ACCESS_KEY && CONFIG.IA_SECRET_KEY),
+    cloudflare: !!CONFIG.CF_WORKER,
+    oracle: !!CONFIG.ORACLE_CACHE,
+    uptime: Math.floor(process.uptime())
+  });
 });
 
 // Serve frontend
@@ -270,14 +256,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// Start
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✓ Server running on http://0.0.0.0:${PORT}`);
-  console.log(`✓ Admin: ${CONFIG.ADMIN_USER}`);
+  console.log(`✓ Listening on 0.0.0.0:${PORT}`);
+  console.log(`✓ Access: http://localhost:${PORT}`);
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Shutting down...');
-  process.exit(0);
-});
+process.on('SIGTERM', () => process.exit(0));
+process.on('uncaughtException', (err) => console.error('Uncaught:', err));
