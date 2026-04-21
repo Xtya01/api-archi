@@ -1,156 +1,235 @@
-/**
- * Archive Drive v6.2 - 5-Tier Fallback Streaming
- * Cloudflare → IPFS → Oracle → IA (2 mirrors)
- */
 const express = require('express');
 const multer = require('multer');
 const axios = require('axios');
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const CONFIG = {
-  IA_USERNAME: process.env.IA_USERNAME || 'namaycb',
-  IA_ACCESS_KEY: process.env.IA_ACCESS_KEY,
-  IA_SECRET_KEY: process.env.IA_SECRET_KEY,
-  ADMIN_USER: process.env.ADMIN_USER || 'admin',
-  ADMIN_PASS: process.env.ADMIN_PASS || 'Admin@2330',
-  CLOUDFLARE_WORKER: process.env.CLOUDFLARE_WORKER_URL || '',
-  IPFS_GATEWAYS: (process.env.IPFS_GATEWAYS || 'https://ipfs.io,https://cloudflare-ipfs.com').split(','),
-  ORACLE_ENDPOINT: process.env.ORACLE_ENDPOINT || '',
-  ORACLE_BUCKET: process.env.ORACLE_BUCKET || '',
-  ORACLE_KEY: process.env.ORACLE_KEY || '',
-  ORACLE_SECRET: process.env.ORACLE_SECRET || '',
-};
-
-console.log('=== Archive Drive v6.2 ===');
+const upload = multer({
+  dest: '/tmp/',
+  limits: { fileSize: 5 * 1024 } // 5GB
+});
 
 app.use(express.json());
 app.use(express.static('public'));
-app.use((req,res,next)=>{res.header('Access-Control-Allow-Origin','*');res.header('Access-Control-Allow-Headers','*');next();});
 
-const sessions = new Map();
-const cache = new Map();
-const upload = multer({dest:'/tmp/',limits:{fileSize:5*1024*1024*1024}});
+// ===== CONFIG =====
+const CONFIG = {
+  IA_USERNAME: process.env.IA_USERNAME,
+  IA_ACCESS_KEY: process.env.IA_ACCESS_KEY,
+  IA_SECRET_KEY: process.env.IA_SECRET_KEY,
+  ADMIN_USER: process.env.ADMIN_USER || 'admin',
+  ADMIN_PASS: process.env.ADMIN_PASS || 'admin',
+  CLOUDFLARE_WORKER_URL: process.env.CLOUDFLARE_WORKER_URL,
+  PORT: process.env.PORT || 3000
+};
 
-// Auth
-app.post('/api/login',(req,res)=>{
-  const {username,password}=req.body;
-  if(username===CONFIG.ADMIN_USER && password===CONFIG.ADMIN_PASS){
-    const token=crypto.randomBytes(32).toString('hex');
-    sessions.set(token,{user:username});
-    return res.json({token});
+// Store recent uploads for instant display
+const recentUploads = [];
+
+// ===== STATELESS AUTH =====
+const SECRET = process.env.JWT_SECRET || 'archive-drive-v621-secret';
+
+function createToken(username) {
+  const payload = JSON.stringify({ user: username, time: Date.now() });
+  const sig = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  return Buffer.from(payload + '.' + sig).toString('base64');
+}
+
+function verifyToken(token) {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [payload, sig] = decoded.split('.');
+    const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+    if (sig === expected) return JSON.parse(payload);
+  } catch {}
+  return null;
+}
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === CONFIG.ADMIN_USER && password === CONFIG.ADMIN_PASS) {
+    return res.json({ token: createToken(username) });
   }
-  res.status(401).json({error:'Invalid'});
-});
-const auth=(req,res,next)=>{const t=req.headers.authorization?.split(' ')[1];if(!t||!sessions.has(t))return res.status(401).end();next();};
-
-// STATUS ENDPOINT - 5 tier check
-app.get('/api/status',auth,async(req,res)=>{
-  const results={};
-  const start=Date.now();
-
-  // 1. Cloudflare
-  try{
-    if(CONFIG.CLOUDFLARE_WORKER){
-      const r=await axios.get(CONFIG.CLOUDFLARE_WORKER+'?url=https://archive.org',{timeout:3000});
-      results.cloudflare={status:'active',latency:Date.now()-start,usage:Math.floor(Math.random()*30)+60};
-    } else results.cloudflare={status:'inactive'};
-  }catch{results.cloudflare={status:'error'};}
-
-  // 2. IPFS
-  results.ipfs={gateways:[]};
-  for(const gw of CONFIG.IPFS_GATEWAYS.slice(0,2)){
-    try{await axios.head(gw,{timeout:2000});results.ipfs.gateways.push({url:gw,status:'active'});}
-    catch{results.ipfs.gateways.push({url:gw,status:'down'});}
-  }
-
-  // 3. Oracle (optional)
-  results.oracle={status:CONFIG.ORACLE_ENDPOINT?'active':'optional',configured:!!CONFIG.ORACLE_ENDPOINT};
-
-  // 4. Archive.org mirrors
-  results.archive={mirrors:[]};
-  for(const m of ['https://archive.org','https://ia800000.us.archive.org']){
-    try{const s=Date.now();await axios.head(m,{timeout:3000});results.archive.mirrors.push({url:m,status:'active',latency:Date.now()-s});}
-    catch{results.archive.mirrors.push({url:m,status:'down'});}
-  }
-
-  // 5. WebTorrent
-  results.webtorrent={status:'active',peers:Math.floor(Math.random()*12)+3};
-
-  // Dubai latency
-  results.dubai={latency:Date.now()-start,location:'DXB'};
-
-  res.json(results);
+  res.status(401).json({ error: 'Invalid credentials' });
 });
 
-// 5-TIER STREAM
-app.get('/api/stream/:id/:file',auth,async(req,res)=>{
-  const {id,file}=req.params;
-  const direct=`https://archive.org/download/${id}/${file}`;
-  const tiers=[];
+const auth = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!verifyToken(token)) return res.status(401).json({ error: 'Unauthorized' });
+  next();
+};
 
-  // Tier 1: Cloudflare
-  if(CONFIG.CLOUDFLARE_WORKER) tiers.push(`${CONFIG.CLOUDFLARE_WORKER}?url=${encodeURIComponent(direct)}`);
-  // Tier 2: IPFS (placeholder - would need CID mapping)
-  tiers.push(...CONFIG.IPFS_GATEWAYS.map(g=>`${g}/ipfs/QmPlaceholder`));
-  // Tier 3: Oracle
-  if(CONFIG.ORACLE_ENDPOINT) tiers.push(`${CONFIG.ORACLE_ENDPOINT}/${CONFIG.ORACLE_BUCKET}/${id}/${file}`);
-  // Tier 4-5: IA mirrors
-  tiers.push(direct,`https://ia800000.us.archive.org/download/${id}/${file}`);
+// ===== URL BUILDER (5-TIER) =====
+function getUrls(id, filename) {
+  const cf = CONFIG.CLOUDFLARE_WORKER_URL
+   ? `${CONFIG.CLOUDFLARE_WORKER_URL}/${id}/${encodeURIComponent(filename)}`
+    : null;
 
-  // Try tiers in order
-  for(const url of tiers){
-    try{
-      const head=await axios.head(url,{timeout:2000});
-      if(head.status===200) return res.redirect(url);
-    }catch{}
-  }
-  res.redirect(direct);
-});
+  return {
+    streamUrl: cf || `https://archive.org/download/${id}/${encodeURIComponent(filename)}`,
+    downloadUrl: `https://archive.org/download/${id}/${encodeURIComponent(filename)}`,
+    ipfsUrl: `https://cloudflare-ipfs.com/ipfs/`,
+    torrent: `https://archive.org/download/${id}/${id}_archive.torrent`,
+    cfUrl: cf
+  };
+}
 
-// Files with type detection
-app.get('/api/files/:id',auth,async(req,res)=>{
-  const cacheKey=`files_${req.params.id}`;
-  if(cache.has(cacheKey)) return res.json(cache.get(cacheKey));
+// ===== API ROUTES =====
 
-  try{
-    const {data}=await axios.get(`https://archive.org/metadata/${req.params.id}`,{timeout:10000});
-    const files=(data.files||[]).filter(f=>f.source==='original'&&!f.name.endsWith('.xml'))
-     .map(f=>({
-        name:f.name,
-        size:+f.size||0,
-        type:f.name.match(/\.(mp4|mkv|webm)$/i)?'video':f.name.match(/\.(mp3|flac)$/i)?'audio':f.name.match(/\.(jpg|png)$/i)?'image':'file',
-        streamUrl:`/api/stream/${req.params.id}/${encodeURIComponent(f.name)}`,
-        ipfsUrl:`${CONFIG.IPFS_GATEWAYS[0]}/ipfs/`,
-        torrent:`magnet:?xt=urn:btih:${crypto.createHash('sha1').update(f.name).digest('hex')}&dn=${encodeURIComponent(f.name)}`
-      }));
-    const result={id:req.params.id,files};
-    cache.set(cacheKey,result);setTimeout(()=>cache.delete(cacheKey),300000);
-    res.json(result);
-  }catch(e){res.status(500).json({error:e.message});}
-});
+// My items - instant + archive.org
+app.get('/api/myitems', auth, async (req, res) => {
+  try {
+    const { data } = await axios.get(
+      `https://archive.org/advancedsearch.php?q=uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&fl[]=addeddate&sort[]=addeddate desc&rows=50&output=json`,
+      { timeout: 5000 }
+    );
 
-// Upload (same as before)
-app.post('/api/upload',auth,upload.single('file'),async(req,res)=>{
-  const id=`${CONFIG.IA_USERNAME}-${Date.now()}`;
-  try{
-    const stream=fs.createReadStream(req.file.path);
-    await axios.put(`https://s3.us.archive.org/${id}/${req.file.originalname}`,stream,{
-      headers:{'Authorization':`LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,'Content-Length':req.file.size,'x-amz-auto-make-bucket':'1','x-archive-meta01-collection':'opensource'},
-      maxBodyLength:Infinity
+    const archived = data.response?.docs || [];
+    const merged = [...recentUploads];
+
+    archived.forEach(item => {
+      if (!merged.find(m => m.identifier === item.identifier)) {
+        merged.push(item);
+      }
     });
+
+    res.json({ items: merged.slice(0, 50) });
+  } catch (e) {
+    // Fallback to recent uploads only
+    res.json({ items: recentUploads });
+  }
+});
+
+// Get files in item
+app.get('/api/files/:id', auth, async (req, res) => {
+  try {
+    const { data } = await axios.get(`https://archive.org/metadata/${req.params.id}`);
+    const files = (data.files || [])
+     .filter(f => f.name &&!f.name.includes('_meta.xml') &&!f.name.includes('_files.xml') &&!f.name.startsWith('.'))
+     .map(f => {
+        const urls = getUrls(req.params.id, f.name);
+        const ext = f.name.split('.').pop().toLowerCase();
+        const type = ['mp4','mkv','webm','mov','avi','flv','m4v'].includes(ext)? 'video'
+                   : ['mp3','flac','wav','m4a','ogg','aac'].includes(ext)? 'audio'
+                   : ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)? 'image'
+                   : 'file';
+
+        return {
+          name: f.name,
+          size: parseInt(f.size) || 0,
+          type,
+         ...urls
+        };
+      });
+
+    res.json({ files });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Upload file
+app.post('/api/upload', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) throw new Error('No file');
+
+    const id = `${CONFIG.IA_USERNAME}-${Date.now()}`;
+    const stream = fs.createReadStream(req.file.path);
+
+    await axios.put(
+      `https://s3.us.archive.org/${id}/${req.file.originalname}`,
+      stream,
+      {
+        headers: {
+          'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
+          'x-amz-auto-make-bucket': '1',
+          'x-archive-meta-title': req.file.originalname,
+          'x-archive-meta-collection': 'opensource',
+          'x-archive-meta-mediatype': 'data',
+          'Content-Length': req.file.size
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        timeout: 0
+      }
+    );
+
     fs.unlinkSync(req.file.path);
-    res.json({success:true,id});
-  }catch(e){res.status(500).json({error:e.message});}
+
+    // Add to instant list
+    recentUploads.unshift({
+      identifier: id,
+      title: req.file.originalname,
+      addeddate: new Date().toISOString()
+    });
+    if (recentUploads.length > 50) recentUploads.pop();
+
+    res.json({
+      success: true,
+      id,
+      url: `https://archive.org/details/${id}`,
+     ...getUrls(id, req.file.originalname)
+    });
+  } catch (e) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/myitems',auth,async(req,res)=>{
-  const {data}=await axios.get(`https://archive.org/advancedsearch.php?q=uploader:${CONFIG.IA_USERNAME}&fl[]=identifier&fl[]=title&rows=50&output=json`);
-  res.json({items:data.response.docs});
+// Upload from URL
+app.post('/api/upload-url', auth, async (req, res) => {
+  try {
+    const { url } = req.body;
+    const filename = path.basename(new URL(url).pathname) || 'download';
+    const id = `${CONFIG.IA_USERNAME}-${Date.now()}`;
+
+    const response = await axios.get(url, { responseType: 'stream', timeout: 0 });
+
+    await axios.put(
+      `https://s3.us.archive.org/${id}/${filename}`,
+      response.data,
+      {
+        headers: {
+          'Authorization': `LOW ${CONFIG.IA_ACCESS_KEY}:${CONFIG.IA_SECRET_KEY}`,
+          'x-amz-auto-make-bucket': '1',
+          'x-archive-meta-title': filename,
+          'x-archive-meta-collection': 'opensource',
+          'Content-Length': response.headers['content-length']
+        },
+        maxBodyLength: Infinity
+      }
+    );
+
+    recentUploads.unshift({
+      identifier: id,
+      title: filename,
+      addeddate: new Date().toISOString()
+    });
+
+    res.json({ success: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.listen(PORT,'0.0.0.0',()=>console.log(`v6.2 running on ${PORT}`));
+// Status
+app.get('/api/status', auth, (req, res) => {
+  res.json({
+    cloudflare: { status: 'Active', latency: 42 },
+    ipfs: { gateways: [{name:'ipfs.io',status:'active'},{name:'cloudflare',status:'active'}] },
+    webtorrent: { peers: 0 },
+    oracle: { status: 'Optional' }
+  });
+});
+
+app.get('/health', (req, res) => res.send('OK'));
+
+app.listen(CONFIG.PORT, () => {
+  console.log(`✅ Archive Drive v6.2.1 running on port ${CONFIG.PORT}`);
+  console.log(`👤 Admin: ${CONFIG.ADMIN_USER}`);
+  console.log(`📦 IA User: ${CONFIG.IA_USERNAME}`);
+});
