@@ -1,74 +1,81 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Archive Drive</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.js"></script>
 <style>
-:root{--bg:#050507;--card:#0d0f14;--card2:#141821;--border:#1e232e;--text:#e6e8ee;--muted:#8a92a6;--accent:#6366f1;--accent2:#8b5cf6;--ok:#10b981;--err:#ef4444}
-*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',system-ui;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(800px circle at 10% 20%,rgba(99,102,241,.15),transparent 40%),radial-gradient(600px circle at 90% 80%,rgba(139,92,246,.12),transparent 40%),var(--bg)}
-.container{max-width:1200px;margin:0 auto;padding:24px}
-.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px}
-.logo{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
-.logo-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px}
-.card{background:rgba(13,15,20,.7);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:24px;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
-.login-card{max-width:420px;margin:10vh auto;text-align:center}
-.login-card h1{font-size:28px;margin:16px 0 8px}.login-card p{color:var(--muted);margin-bottom:28px}
-.input{width:100%;padding:14px 16px;margin:8px 0;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;transition:.2s}
-.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-.btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:white;font-weight:600;font-size:15px;cursor:pointer;transition:.2s;margin-top:12px}
-.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(99,102,241,.3)}
-.btn:disabled{opacity:.5;transform:none}
-.btn-small{padding:8px 14px;font-size:13px;width:auto;margin:0}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
-.btn-ghost:hover{background:var(--card2);color:var(--text);transform:none;box-shadow:none}
-.app{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
-.sidebar{display:flex;flex-direction:column;gap:8px}
-.nav-item{padding:14px 18px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--muted);transition:.2s;font-weight:500}
-.nav-item:hover{background:var(--card2);color:var(--text)}.nav-item.active{background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.2));color:white;border:1px solid rgba(99,102,241,.3)}
-.nav-icon{font-size:18px;width:24px}
-.main{min-height:600px}
-.tab{display:none}.tab.active{display:block;animation:fade.3s}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:48px 24px;text-align:center;transition:.2s;cursor:pointer;background:var(--card2)}
-.upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(99,102,241,.05)}
-.upload-icon{font-size:48px;margin-bottom:16px;opacity:.5}
-.file-input{display:none}
-.progress{height:4px;background:var(--card2);border-radius:2px;overflow:hidden;margin:16px 0;display:none}
-.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width.3s}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{flex-direction:row;overflow-x:auto}.grid-2{grid-template-columns:1fr}}
-.item-list{display:flex;flex-direction:column;gap:12px;max-height:600px;overflow-y:auto;padding-right:8px}
-.item{padding:18px;background:var(--card2);border:1px solid var(--border);border-radius:14px;cursor:pointer;transition:.2s}
-.item:hover{border-color:var(--accent);transform:translateY(-1px)}
-.item-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:8px}
-.item-title{font-weight:600;font-size:15px}.item-size{font-size:12px;color:var(--muted);background:var(--bg);padding:4px 8px;border-radius:6px}
-.item-meta{font-size:13px;color:var(--muted)}
-.file-grid{display:grid;gap:10px}
-.file-item{display:flex;align-items:center;gap:14px;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:12px;transition:.2s}
-.file-item:hover{background:#1a1f2b}
-.file-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.file-icon.img{background:rgba(16,185,129,.15);color:#10b981}
-.file-icon.vid{background:rgba(239,68,.15);color:#ef4444}
-.file-icon.aud{background:rgba(245,158,11,.15);color:#f59e0b}
-.file-icon.doc{background:rgba(99,102,241,.15);color:#6366f1}
-.file-icon.arc{background:rgba(139,92,246,.15);color:#8b5cf6}
-.file-info{flex:1;min-width:0}.file-name{font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root{--bg:#000;--card:#0a0a0f;--card2:#14141c;--border:#1f1f2e;--text:#fff;--muted:#8b8ba7;--accent:#6366f1;--accent2:#8b5cf6}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+.bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(600px at 20% 0%,rgba(99,102,241,.15),transparent 50%),radial-gradient(400px at 80% 100%,rgba(139,92,246,.1),transparent 50%),#000}
+.container{max-width:1400px;margin:0 auto;padding:16px;padding-bottom:90px}
+@media(min-width:768px){.container{padding:24px;padding-bottom:24px}}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center}
+.card{background:rgba(10,10,15,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:20px}
+.login-card{max-width:380px;margin:15vh auto;text-align:center;padding:32px 24px}
+.input{width:100%;padding:14px;margin:8px 0;background:var(--card2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:16px}
+.input:focus{outline:none;border-color:var(--accent)}
+.btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:white;font-weight:600;font-size:16px;cursor:pointer}
+.btn-small{padding:10px 16px;font-size:14px;width:auto;min-height:44px}
+.btn-ghost{background:var(--card2);border:1px solid var(--border)}
+
+/* MOBILE BOTTOM NAV */
+.app{display:block}
+.sidebar{display:none}
+.mobile-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;background:none;border:none;color:var(--muted);font-size:11px;min-height:56px}
+.nav-btn.active{color:var(--accent)}
+.nav-icon{font-size:22px}
+
+/* DESKTOP SIDEBAR */
+@media(min-width:768px){
+.app{display:grid;grid-template-columns:240px 1fr;gap:24px}
+.sidebar{display:flex;flex-direction:column;gap:6px;padding:16px}
+.mobile-nav{display:none}
+.nav-item{padding:12px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:12px;color:var(--muted);transition:.2s}
+.nav-item.active{background:rgba(99,102,241,.15);color:white}
+}
+
+.tab{display:none}.tab.active{display:block;animation:fade .2s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;background:var(--card2);cursor:pointer}
+.progress{height:3px;background:var(--card2);border-radius:2px;overflow:hidden;margin:12px 0;display:none}
+.progress-bar{height:100%;background:var(--accent);width:0%;transition:width .3s}
+.item-list{display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 300px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.item{padding:16px;background:var(--card2);border:1px solid var(--border);border-radius:14px}
+.item:active{transform:scale(.98)}
+.file-grid{display:grid;gap:8px}
+.file-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card2);border-radius:12px;min-height:64px}
+.file-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.file-icon.img{background:rgba(16,185,129,.2);color:#10b981}
+.file-icon.vid{background:rgba(239,68,68,.2);color:#ef4444}
+.file-icon.aud{background:rgba(245,158,11,.2);color:#f59e0b}
+.file-icon.doc{background:rgba(99,102,241,.2);color:#6366f1}
+.file-info{flex:1;min-width:0}.file-name{font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-size{font-size:12px;color:var(--muted);margin-top:2px}
 .file-actions{display:flex;gap:6px}
-.viewer{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)}
-.viewer.active{display:flex}
-.viewer-box{width:100%;max-width:1400px;height:90vh;background:var(--card);border:1px solid var(--border);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8)}
-.viewer-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.viewer-body{flex:1;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+
+/* VIEWER */
+.viewer{position:fixed;inset:0;background:#000;z-index:1000;display:none}
+.viewer.active{display:flex;flex-direction:column}
+.viewer-head{padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top));background:rgba(0,0,0,.9);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-bottom:1px solid var(--border)}
+.viewer-body{flex:1;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
 .viewer-body img{max-width:100%;max-height:100%;object-fit:contain}
-.viewer-body video{max-width:100%;max-height:100%}
-.viewer-body iframe{width:100%;height:100%;border:none;background:white}
-.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);padding:14px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateY(100px);opacity:0;transition:.3s;z-index:2000}
-.toast.show{transform:none;opacity:1}
+.plyr{width:100%;height:100%;--plyr-color-main:var(--accent)}
+.plyr--video{height:100%}
+.plyr__video-wrapper{height:100%}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);border:1px solid var(--border);padding:12px 20px;border-radius:12px;opacity:0;transition:.3s;z-index:2000;white-space:nowrap;max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+@media(min-width:768px){.toast{bottom:24px;left:auto;right:24px;transform:translateY(100px)}.toast.show{transform:translateY(0)}}
 .hidden{display:none}
 </style>
 </head>
@@ -77,227 +84,105 @@
 <div class="container">
 <div class="header">
 <div class="logo"><div class="logo-icon">📦</div><span>Archive Drive</span></div>
-<div id="userInfo" class="hidden" style="color:var(--muted);font-size:14px"></div>
+<div id="userInfo" class="hidden" style="color:var(--muted);font-size:13px"></div>
 </div>
 
 <div id="loginScreen" class="login-card card">
-<h1>Welcome back</h1>
-<p>Sign in to manage your archive.org storage</p>
-<input id="u" class="input" placeholder="Username" value="admin">
-<input id="p" class="input" type="password" placeholder="Password" value="Admin@2330">
-<button class="btn" onclick="doLogin()">Continue →</button>
+<h1 style="font-size:24px;margin-bottom:8px">Welcome</h1>
+<p style="color:var(--muted);margin-bottom:24px;font-size:14px">Sign in to continue</p>
+<input id="u" class="input" placeholder="Username" value="admin" autocomplete="username">
+<input id="p" class="input" type="password" placeholder="Password" value="Admin@2330" autocomplete="current-password">
+<button class="btn" onclick="doLogin()" style="margin-top:12px">Continue</button>
 </div>
 
 <div id="app" class="hidden">
 <div class="app">
-<aside class="sidebar card" style="padding:16px">
-<div class="nav-item active" onclick="switchTab('upload',this)"><span class="nav-icon">⬆️</span><span>Upload</span></div>
-<div class="nav-item" onclick="switchTab('remote',this)"><span class="nav-icon">🌐</span><span>Remote</span></div>
-<div class="nav-item" onclick="switchTab('browse',this)"><span class="nav-icon">📁</span><span>Browse</span></div>
+<aside class="sidebar card">
+<div class="nav-item active" onclick="switchTab('upload',this)"><span>⬆️</span><span>Upload</span></div>
+<div class="nav-item" onclick="switchTab('remote',this)"><span>🌐</span><span>Remote</span></div>
+<div class="nav-item" onclick="switchTab('browse',this)"><span>📁</span><span>Browse</span></div>
 </aside>
-
-<main class="main">
-<!-- UPLOAD TAB -->
-<div id="upload" class="tab active">
-<div class="card">
-<h2 style="margin-bottom:20px;font-size:18px">Upload Files</h2>
-<div class="upload-zone" onclick="document.getElementById('files').click()" ondrop="drop(event)" ondragover="over(event)" ondragleave="leave(event)">
-<div class="upload-icon">📤</div>
-<div style="font-weight:600;margin-bottom:6px">Drop files here or click to browse</div>
-<div style="color:var(--muted);font-size:13px">Up to 20 files • Max 5GB each</div>
-<input type="file" id="files" class="file-input" multiple onchange="handleFiles()">
+<main>
+<div id="upload" class="tab active"><div class="card">
+<h2 style="font-size:17px;margin-bottom:16px">Upload</h2>
+<div class="upload-zone" onclick="document.getElementById('files').click()">
+<div style="font-size:36px;margin-bottom:8px">📤</div>
+<div style="font-weight:500">Tap to select files</div>
+<div style="color:var(--muted);font-size:13px;margin-top:4px">or drag & drop</div>
+<input type="file" id="files" class="hidden" multiple onchange="handleFiles()">
 </div>
-<div style="margin-top:20px">
-<input id="upId" class="input" placeholder="Custom identifier (optional)">
-</div>
+<input id="upId" class="input" placeholder="Identifier (optional)" style="margin-top:12px">
 <div class="progress" id="prog"><div class="progress-bar" id="progBar"></div></div>
-<button id="upBtn" class="btn hidden" onclick="uploadFiles()">Upload <span id="fileCount"></span> files</button>
-<div id="upOut" style="margin-top:16px"></div>
-</div>
-</div>
+<button id="upBtn" class="btn hidden" onclick="uploadFiles()" style="margin-top:12px">Upload <span id="fileCount"></span></button>
+<div id="upOut" style="margin-top:12px"></div>
+</div></div>
 
-<!-- REMOTE TAB -->
-<div id="remote" class="tab">
-<div class="card">
-<h2 style="margin-bottom:20px;font-size:18px">Remote URL Upload</h2>
-<input id="remoteUrl" class="input" placeholder="https://example.com/file.zip">
-<div class="grid-2">
+<div id="remote" class="tab"><div class="card">
+<h2 style="font-size:17px;margin-bottom:16px">Remote URL</h2>
+<input id="remoteUrl" class="input" placeholder="https://..." inputmode="url">
 <input id="remoteId" class="input" placeholder="Identifier">
-<input id="remoteName" class="input" placeholder="Filename (optional)">
-</div>
 <button class="btn" onclick="uploadRemote()">Fetch & Upload</button>
-<div id="remoteOut" style="margin-top:16px"></div>
-</div>
-</div>
+<div id="remoteOut" style="margin-top:12px"></div>
+</div></div>
 
-<!-- BROWSE TAB -->
-<div id="browse" class="tab">
-<div class="card">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-<h2 style="font-size:18px">Your Files</h2>
-<button class="btn-small btn-ghost" onclick="loadItems()">↻ Refresh</button>
+<div id="browse" class="tab"><div class="card">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<h2 style="font-size:17px">Files</h2>
+<button class="btn-small btn-ghost" onclick="loadItems()">↻</button>
 </div>
-<div id="itemsView">
-<div id="items" class="item-list"></div>
-</div>
+<div id="itemsView"><div id="items" class="item-list"></div></div>
 <div id="filesView" class="hidden">
-<button class="btn-small btn-ghost" onclick="backToItems()" style="margin-bottom:16px">← Back to items</button>
-<h3 id="filesTitle" style="margin-bottom:16px"></h3>
+<button class="btn-small btn-ghost" onclick="backToItems()" style="margin-bottom:12px">← Back</button>
+<h3 id="filesTitle" style="margin-bottom:12px;font-size:15px"></h3>
 <div id="filesList" class="file-grid"></div>
 </div>
-</div>
-</div>
-
+</div></div>
 </main>
 </div>
 </div>
 </div>
 
-<!-- VIEWER -->
-<div class="viewer" id="viewer" onclick="closeViewer(event)">
-<div class="viewer-box" onclick="event.stopPropagation()">
+<!-- Mobile Bottom Nav -->
+<div class="mobile-nav" id="mobileNav" style="display:none">
+<button class="nav-btn active" onclick="switchMobile('upload',this)"><div class="nav-icon">⬆️</div><span>Upload</span></button>
+<button class="nav-btn" onclick="switchMobile('remote',this)"><div class="nav-icon">🌐</div><span>Remote</span></button>
+<button class="nav-btn" onclick="switchMobile('browse',this)"><div class="nav-icon">📁</div><span>Browse</span></button>
+</div>
+
+<div class="viewer" id="viewer">
 <div class="viewer-head">
-<div id="viewerTitle" style="font-weight:600"></div>
+<div id="viewerTitle" style="font-weight:500;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
 <button class="btn-small btn-ghost" onclick="closeViewer()">✕</button>
 </div>
 <div class="viewer-body" id="viewerBody"></div>
-</div>
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-let selectedFiles = [];
-const IMG=['png','jpg','jpeg','gif','webp','svg','bmp','ico'];
-const VID=['mp4','webm','mov','m4v','avi','mkv'];
-const AUD=['mp3','wav','flac','m4a','aac','ogg'];
-const PDF=['pdf'];
+let selectedFiles=[],player=null;
+const IMG=['png','jpg','jpeg','gif','webp','svg'],VID=['mp4','webm','mov','m4v','mkv'],AUD=['mp3','wav','flac','m4a','aac','ogg'],PDF=['pdf'];
 
 async function doLogin(){
- const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:document.getElementById('u').value,pass:document.getElementById('p').value})});
+ const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:u.value,pass:p.value})});
  if(r.ok){
-   document.getElementById('loginScreen').classList.add('hidden');
-   document.getElementById('app').classList.remove('hidden');
-   document.getElementById('userInfo').textContent='namaycb • archive.org';
-   document.getElementById('userInfo').classList.remove('hidden');
-   loadItems();
-   showToast('Welcome back!');
- } else {
-   showToast('Invalid credentials',true);
- }
+   loginScreen.classList.add('hidden');app.classList.remove('hidden');userInfo.classList.remove('hidden');userInfo.textContent='namaycb';
+   if(window.innerWidth<768)mobileNav.style.display='flex';
+   loadItems();showToast('Ready');
+ }else showToast('Invalid',1);
 }
-
-function switchTab(n,el){
- document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
- document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
- document.getElementById(n).classList.add('active');
- el.classList.add('active');
-}
-
-function over(e){e.preventDefault();e.currentTarget.classList.add('dragover')}
-function leave(e){e.currentTarget.classList.remove('dragover')}
-function drop(e){e.preventDefault();e.currentTarget.classList.remove('dragover');document.getElementById('files').files=e.dataTransfer.files;handleFiles()}
-function handleFiles(){
- selectedFiles=[...document.getElementById('files').files];
- document.getElementById('fileCount').textContent=selectedFiles.length;
- document.getElementById('upBtn').classList.toggle('hidden',!selectedFiles.length);
-}
-
-async function uploadFiles(){
- if(!selectedFiles.length)return;
- const upBtn=document.getElementById('upBtn');
- upBtn.disabled=true;
- document.getElementById('prog').style.display='block';
- const fd=new FormData();
- selectedFiles.forEach(f=>fd.append('files',f));
- fd.append('identifier',document.getElementById('upId').value);
- const xhr=new XMLHttpRequest();
- xhr.upload.onprogress=e=>{if(e.lengthComputable)document.getElementById('progBar').style.width=Math.round(e.loaded/e.total*100)+'%';};
- xhr.onload=()=>{
-   document.getElementById('prog').style.display='none';
-   upBtn.disabled=false;
-   const d=JSON.parse(xhr.responseText);
-   document.getElementById('upOut').innerHTML=d.results.map(r=>`<div style="padding:12px;background:var(--card2);border-radius:10px;margin:6px 0">✅ <strong>${r.file}</strong><br><a href="${r.url}" target="_blank" style="color:var(--accent);font-size:13px">${r.url}</a></div>`).join('');
-   selectedFiles=[];document.getElementById('files').value='';upBtn.classList.add('hidden');loadItems();showToast('Upload complete!');
- };
- xhr.open('POST','/api/upload');
- xhr.send(fd);
-}
-
-async function uploadRemote(){
- const url=document.getElementById('remoteUrl').value;
- if(!url)return showToast('Enter URL',true);
- document.getElementById('remoteOut').innerHTML='<div style="color:var(--muted)">Fetching...</div>';
- const r=await fetch('/api/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url,identifier:document.getElementById('remoteId').value,filename:document.getElementById('remoteName').value})});
- const j=await r.json();
- if(r.ok){
-   document.getElementById('remoteOut').innerHTML=`<div style="padding:12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px">✅ ${j.filename}<br><a href="${j.url}" target="_blank" style="color:var(--ok)">${j.url}</a></div>`;
-   loadItems();
-   showToast('Remote upload complete!');
- } else {
-   document.getElementById('remoteOut').innerHTML=`<div style="color:var(--err)">${j.error}</div>`;
-   showToast('Upload failed',true);
- }
-}
-
-async function loadItems(){
- document.getElementById('items').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading...</div>';
- const r=await fetch('/api/items');
- const j=await r.json();
- document.getElementById('items').innerHTML=j.items.map(it=>`<div class="item" onclick="showFiles('${it.identifier}')"><div class="item-head"><div class="item-title">${it.identifier}</div><div class="item-size">${Math.round((it.item_size||0)/1024/1024)} MB</div></div><div class="item-meta">archive.org</div></div>`).join('')||'<div style="text-align:center;padding:40px;color:var(--muted)">No items yet</div>';
-}
-
-async function showFiles(id){
- document.getElementById('itemsView').classList.add('hidden');
- document.getElementById('filesView').classList.remove('hidden');
- document.getElementById('filesTitle').textContent=id;
- document.getElementById('filesList').innerHTML='<div style="text-align:center;padding:40px">Loading...</div>';
- const r=await fetch(`/api/files/${id}`);
- const j=await r.json();
- if(!j.files.length){
-   document.getElementById('filesList').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">No files</div>';
-   return;
- }
- document.getElementById('filesList').innerHTML=j.files.map(f=>{
-   let icon='📄',cls='doc';
-   if(IMG.includes(f.ext)){icon='🖼️';cls='img'}
-   else if(VID.includes(f.ext)){icon='🎬';cls='vid'}
-   else if(AUD.includes(f.ext)){icon='🎵';cls='aud'}
-   else if(['zip','rar','7z','tar','gz'].includes(f.ext)){icon='📦';cls='arc'}
-   const canView=[...IMG,...VID,...AUD,...PDF].includes(f.ext);
-   return `<div class="file-item"><div class="file-icon ${cls}">${icon}</div><div class="file-info"><div class="file-name">${f.name}</div><div class="file-size">${f.size?Math.round(f.size/1024/1024*10)/10+' MB':'—'}</div></div><div class="file-actions">${canView?`<button class="btn-small" onclick="openViewer('${f.url}','${f.name}','${f.ext}')">View</button>`:''}<a href="${f.url}" target="_blank"><button class="btn-small btn-ghost">Download</button></a></div></div>`;
- }).join('');
-}
-
-function backToItems(){
- document.getElementById('filesView').classList.add('hidden');
- document.getElementById('itemsView').classList.remove('hidden');
-}
-
-function openViewer(url,name,ext){
- document.getElementById('viewer').classList.add('active');
- document.getElementById('viewerTitle').textContent=name;
- const body=document.getElementById('viewerBody');
- body.innerHTML='';
- if(IMG.includes(ext))body.innerHTML=`<img src="${url}" alt="${name}">`;
- else if(VID.includes(ext))body.innerHTML=`<video controls autoplay><source src="${url}"></video>`;
- else if(AUD.includes(ext))body.innerHTML=`<div style="padding:60px"><audio controls autoplay style="width:500px;max-width:90%"><source src="${url}"></audio></div>`;
- else if(PDF.includes(ext))body.innerHTML=`<iframe src="${url}"></iframe>`;
-}
-
-function closeViewer(e){
- if(!e||e.target.id==='viewer')document.getElementById('viewer').classList.remove('active');
-}
-
-function showToast(msg,err){
- const t=document.getElementById('toast');
- t.textContent=msg;
- t.style.borderColor=err?'var(--err)':'var(--ok)';
- t.classList.add('show');
- setTimeout(()=>t.classList.remove('show'),3000);
-}
-
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeViewer()});
+function switchTab(n,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));document.getElementById(n).classList.add('active');if(el)el.classList.add('active');}
+function switchMobile(n,el){switchTab(n);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+function handleFiles(){selectedFiles=[...files.files];fileCount.textContent=selectedFiles.length;upBtn.classList.toggle('hidden',!selectedFiles.length);}
+async function uploadFiles(){if(!selectedFiles.length)return;upBtn.disabled=1;prog.style.display='block';const fd=new FormData();selectedFiles.forEach(f=>fd.append('files',f));fd.append('identifier',upId.value);const x=new XMLHttpRequest();x.upload.onprogress=e=>{if(e.lengthComputable)progBar.style.width=Math.round(e.loaded/e.total*100)+'%'};x.onload=()=>{prog.style.display='none';upBtn.disabled=0;const d=JSON.parse(x.responseText);upOut.innerHTML=d.results.map(r=>`<div style="padding:10px;background:var(--card2);border-radius:10px;margin:6px 0;font-size:14px">✅ ${r.file}</div>`).join('');selectedFiles=[];files.value='';upBtn.classList.add('hidden');loadItems();showToast('Uploaded')};x.open('POST','/api/upload');x.send(fd);}
+async function uploadRemote(){const url=remoteUrl.value;if(!url)return showToast('Enter URL',1);remoteOut.innerHTML='<div style="color:var(--muted);font-size:14px">Fetching...</div>';const r=await fetch('/api/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,identifier:remoteId.value})});const j=await r.json();if(r.ok){remoteOut.innerHTML=`<div style="padding:10px;background:rgba(16,185,129,.15);border-radius:10px;font-size:14px">✅ ${j.filename}</div>`;loadItems();showToast('Done')}else{remoteOut.innerHTML=`<div style="color:#ef4444;font-size:14px">${j.error}</div>`;showToast('Failed',1)}}
+async function loadItems(){items.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading</div>';const r=await fetch('/api/items');const j=await r.json();items.innerHTML=j.items.map(it=>`<div class="item" onclick="showFiles('${it.identifier}')"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">${it.identifier}</div><div style="font-size:12px;color:var(--muted)">${Math.round((it.item_size||0)/1024/1024)}MB</div></div></div>`).join('')||'<div style="text-align:center;padding:40px;color:var(--muted)">Empty</div>';}
+async function showFiles(id){itemsView.classList.add('hidden');filesView.classList.remove('hidden');filesTitle.textContent=id;filesList.innerHTML='<div style="text-align:center;padding:40px">Loading</div>';const r=await fetch(`/api/files/${id}`);const j=await r.json();filesList.innerHTML=j.files.map(f=>{let i='📄',c='doc';if(IMG.includes(f.ext)){i='🖼️';c='img'}else if(VID.includes(f.ext)){i='🎬';c='vid'}else if(AUD.includes(f.ext)){i='🎵';c='aud'};const v=[...IMG,...VID,...AUD,...PDF].includes(f.ext);return`<div class="file-item"><div class="file-icon ${c}">${i}</div><div class="file-info"><div class="file-name">${f.name}</div><div class="file-size">${f.size?Math.round(f.size/1024/1024*10)/10+' MB':''}</div></div><div class="file-actions">${v?`<button class="btn-small" onclick="openViewer('${f.url}','${f.name}','${f.ext}')">View</button>`:''}</div></div>`}).join('');}
+function backToItems(){filesView.classList.add('hidden');itemsView.classList.remove('hidden')}
+function openViewer(url,name,ext){viewer.classList.add('active');viewerTitle.textContent=name;viewerBody.innerHTML='';if(player){player.destroy();player=null}if(IMG.includes(ext)){viewerBody.innerHTML=`<img src="${url}">`}else if(VID.includes(ext)||AUD.includes(ext)){const t=VID.includes(ext)?'video':'audio';viewerBody.innerHTML=`<${t} id="plyr" playsinline controls><source src="${url}"></${t}>`;player=new Plyr('#plyr',{controls:['play-large','play','progress','current-time','duration','mute','volume','settings','pip','airplay','fullscreen'],settings:['speed','quality'],speed:{selected:1,options:[0.5,0.75,1,1.25,1.5,1.75,2]}})}else if(PDF.includes(ext)){viewerBody.innerHTML=`<iframe src="${url}" style="width:100%;height:100%;border:none;background:white"></iframe>`}}
+function closeViewer(){viewer.classList.remove('active');if(player){player.destroy();player=null}}
+function showToast(m,e){toast.textContent=m;toast.style.borderColor=e?'#ef4444':'#10b981';toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),2500)}
+document.addEventListener('keydown',e=>e.key==='Escape'&&closeViewer());
 </script>
 </body>
 </html>
