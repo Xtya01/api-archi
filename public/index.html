@@ -1,10 +1,171 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Archive Drive</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body>
-<div class="bg"></div>
-<div id="login" class="login-overlay">
-  <div class="login-card">
-    <div class="login-head"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7v10c0 1.1.9 2 2 2h12M4 7l8-4 8 4M4 7l8 4 8-4"/></svg><h1>Archive Drive</h1><p>Sign in to continue</p></div>
-    <form id="loginForm"><input id="user" placeholder="Username" autocomplete="username" required><input id="pass" type="password" placeholder="Password" autocomplete="current-password" required><button type="submit" class="btn primary">Sign In</button><div id="loginErr" class="login-err"></div></form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archive Drive - Internet Archive Uploader</title>
+  <style>
+    :root { --bg: #0a0a0a; --card: #111111; --border: #222; --text: #e5e5e5; --muted: #888; --primary: #0066cc; --primary-hover: #0052a3; --success: #0a3d0a; --error: #3d0a0a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; line-height: 1.5; }
+   .container { width: 100%; max-width: 520px; }
+   .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 48px 40px; box-shadow: 0 25px 80px rgba(0,0,0,0.6); }
+   .logo { font-size: 56px; text-align: center; margin-bottom: 16px; filter: grayscale(0.2); }
+    h1 { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; letter-spacing: -0.5px; }
+   .subtitle { color: var(--muted); text-align: center; margin-bottom: 36px; font-size: 14px; }
+   .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 14px 16px; background: #0f0f0f; border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 15px; transition: all 0.2s; }
+    input:focus { outline: none; border-color: var(--primary); background: #141414; box-shadow: 0 0 0 3px rgba(0,102,204,0.1); }
+    input[type="file"] { padding: 12px; cursor: pointer; }
+    input[type="file"]::file-selector-button { background: #1a1a1a; border: 1px solid var(--border); color: var(--text); padding: 8px 14px; border-radius: 8px; margin-right: 12px; cursor: pointer; font-size: 13px; }
+    button { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 12px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+    button:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,102,204,0.3); }
+    button:active:not(:disabled) { transform: translateY(0); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+   .result { margin-top: 24px; padding: 18px; border-radius: 12px; font-size: 14px; display: none; word-break: break-word; }
+   .result.show { display: block; animation: slideIn 0.3s ease; }
+   .result.success { background: var(--success); border: 1px solid #1a5a1a; color: #90ee90; }
+   .result.error { background: var(--error); border: 1px solid #5a1a1a; color: #ff9090; }
+   .result.loading { background: #0f172a; border: 1px solid #1e293b; color: #94a3b8; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    a { color: #60a5fa; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+   .hidden { display: none!important; }
+   .file-info { font-size: 12px; color: var(--muted); margin-top: 4px; }
+   .logout { position: absolute; top: 20px; right: 20px; width: auto; padding: 8px 16px; font-size: 13px; background: transparent; border: 1px solid var(--border); }
+   .logout:hover { background: #1a1a1a; transform: none; box-shadow: none; }
+    @media (max-width: 600px) {.card { padding: 32px 24px; } }
+  </style>
+</head>
+<body>
+  <button class="logout hidden" id="logoutBtn" onclick="logout()">Logout</button>
+
+  <div class="container">
+    <div class="card">
+      <div class="logo">📦</div>
+      <h1>Archive Drive</h1>
+      <p class="subtitle">Direct uploader for archive.org</p>
+
+      <div id="loginView">
+        <div class="form-group">
+          <label>Username</label>
+          <input id="username" type="text" placeholder="admin" value="admin" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="password" type="password" placeholder="••••••••" value="Admin@2330" autocomplete="current-password">
+        </div>
+        <button id="loginBtn" onclick="login()">Sign In</button>
+        <div id="loginError" class="result error"></div>
+      </div>
+
+      <div id="uploadView" class="hidden">
+        <div class="form-group">
+          <label>Select File</label>
+          <input type="file" id="fileInput">
+          <div class="file-info" id="fileInfo"></div>
+        </div>
+        <div class="form-group">
+          <label>Identifier (optional)</label>
+          <input id="identifier" type="text" placeholder="my-upload-name">
+        </div>
+        <button id="uploadBtn" onclick="upload()">Upload to Archive.org</button>
+        <div id="result" class="result"></div>
+      </div>
+    </div>
   </div>
-</div>
-<nav><div class="nav-inner"><div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 7v10c0 1.1.9 2 2 2h12M4 7l8-4 8 4M4 7l8 4 8-4" stroke="currentColor" stroke-width="1.5"/></svg> Archive Drive</div><div class="nav-right"><div id="status" class="status">●</div><button id="theme" class="icon-btn">◐</button><button id="logout" class="icon-btn">Logout</button></div></div></nav>
-<main><section class="hero"><h1>Permanent cloud for <span>archive.org</span></h1></section><div class="grid"><div class="card"><div class="tabs"><button class="tab active" data-tab="files">Files</button><button class="tab" data-tab="url">URL</button></div><div id="files-tab" class="panel active"><div id="drop" class="drop"><input type="file" id="fileInput" multiple hidden><div class="drop-content"><div class="drop-icon">⬆</div><b>Drop files</b><span>up to 5GB</span></div></div><div id="fileList"></div><div class="row"><input id="title" placeholder="identifier"><select id="collection"><option>opensource</option><option>community</option><option>software</option></select></div><input id="desc" placeholder="description"><button id="uploadBtn" class="btn primary" disabled><span>Upload</span></button><div id="progWrap" class="prog-wrap" hidden><div class="prog-bar"><div id="prog"></div></div><span id="progTxt">0%</span></div></div><div id="url-tab" class="panel"><div class="url-row"><input id="urlInput" type="url" placeholder="https://..."><button id="paste" class="btn ghost">Paste</button></div><div class="row"><input id="urlTitle" placeholder="identifier"><input id="urlName" placeholder="filename"></div><button id="urlBtn" class="btn primary"><span>Archive URL</span></button><div id="urlProg" class="prog-wrap" hidden><div class="prog-bar indeterminate"><div></div></div><span>Fetching...</span></div></div><div id="toast"></div></div><div class="card"><div class="head"><h2>Your Items</h2><div class="head-tools"><input id="search" placeholder="Search"><select id="sort"><option value="date-desc">Newest</option><option value="date-asc">Oldest</option><option value="name-asc">A→Z</option><option value="name-desc">Z→A</option></select><button id="refresh" class="icon-btn">↻</button></div></div><div id="items" class="items"></div></div></div></main><script src="app.js"></script></body></html>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let isUploading = false;
+
+    $('fileInput').addEventListener('change', e => {
+      const f = e.target.files[0];
+      $('fileInfo').textContent = f? `${f.name} • ${(f.size/1024/1024).toFixed(2)} MB` : '';
+    });
+
+    $('password').addEventListener('keypress', e => e.key === 'Enter' && login());
+
+    async function login() {
+      const btn = $('loginBtn');
+      const err = $('loginError');
+      err.classList.remove('show');
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: $('username').value, pass: $('password').value })
+        });
+
+        if (res.ok) {
+          $('loginView').classList.add('hidden');
+          $('uploadView').classList.remove('hidden');
+          $('logoutBtn').classList.remove('hidden');
+        } else {
+          const data = await res.json();
+          err.textContent = data.error || 'Login failed';
+          err.classList.add('show');
+        }
+      } catch (e) {
+        err.textContent = 'Connection error';
+        err.classList.add('show');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      location.reload();
+    }
+
+    async function upload() {
+      if (isUploading) return;
+      const file = $('fileInput').files[0];
+      if (!file) return alert('Please select a file');
+
+      isUploading = true;
+      const btn = $('uploadBtn');
+      const result = $('result');
+
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+      result.className = 'result loading show';
+      result.innerHTML = `⏳ Uploading <strong>${file.name}</strong>...<br><small>This may take a minute for large files</small>`;
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('identifier', $('identifier').value);
+
+      try {
+        const res = await fetch('/api/upload/new', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (res.ok) {
+          result.className = 'result success show';
+          result.innerHTML = `✅ <strong>Upload successful!</strong><br><br>Identifier: <code>${data.identifier}</code><br>File: ${data.filename}<br><br><a href="${data.url}" target="_blank" rel="noopener">View on Archive.org →</a>`;
+          $('fileInput').value = '';
+          $('fileInfo').textContent = '';
+          $('identifier').value = '';
+        } else {
+          result.className = 'result error show';
+          result.innerHTML = `❌ <strong>Upload failed</strong><br><br>${data.error}<br><small>${data.details || ''}</small>`;
+        }
+      } catch (e) {
+        result.className = 'result error show';
+        result.innerHTML = `❌ <strong>Network error</strong><br><br>${e.message}`;
+      } finally {
+        isUploading = false;
+        btn.disabled = false;
+        btn.textContent = 'Upload to Archive.org';
+      }
+    }
+  </script>
+</body>
+</html>
