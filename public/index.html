@@ -2,108 +2,100 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Archive Drive v6.2.1</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
   <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/webtorrent@2.1.27/webtorrent.min.js"></script>
   <style>
-    :root { --bg-primary:#0b0f1a; --bg-secondary:#111827; --bg-tertiary:#1f2937; --bg-hover:#374151; --border-color:#374151; --text-primary:#f9fafb; --text-secondary:#9ca3af; --text-tertiary:#6b7280; --accent-primary:#6366f1; --accent-secondary:#8b5cf6; --success:#10b981; --warning:#f59e0b; --error:#ef4444; --info:#3b82f6; --radius-md:10px; --radius-lg:16px; --radius-xl:24px; --transition-fast:150ms ease; }
+    :root{--bg-primary:#0b0f1a;--bg-secondary:#111827;--bg-tertiary:#1f2937;--bg-hover:#374151;--border:#374151;--text:#f9fafb;--text2:#9ca3af;--accent:#6366f1;--success:#10b981;--error:#ef4444}
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-primary);color:var(--text-primary);line-height:1.5;overflow:hidden;height:100vh}
-    .hidden{display:none!important}
-    #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--bg-primary) 0%,#1e1b4b 100%);z-index:1000}
-    .login-card{background:rgba(31,41,55,.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-xl);padding:3rem 2.5rem;box-shadow:0 20px 25px -5px rgba(0,0,0,.1);width:100%;max-width:400px}
-    .login-logo{width:64px;height:64px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;color:white}
-    .form-input{width:100%;padding:.875rem 1rem .875rem 2.75rem;background:rgba(0,0,0,.3);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary);font-size:.9375rem}
-    .form-input:focus{outline:none;border-color:var(--accent-primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
-    .form-group{margin-bottom:1.25rem;position:relative}
-    .form-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text-tertiary);pointer-events:none}
-    .btn-primary{width:100%;padding:.875rem;background:var(--accent-primary);border:none;border-radius:var(--radius-md);color:white;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem}
-    .btn-primary:hover{background:#5855eb}
+    body{font-family:Inter,sans-serif;background:var(--bg-primary);color:var(--text);height:100vh;overflow:hidden}
+   .hidden{display:none!important}
+    #login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b0f1a,#1e1b4b);z-index:1000}
+   .login-card{background:rgba(31,41,55,.95);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:3rem 2.5rem;width:100%;max-width:400px}
+   .login-logo{width:64px;height:64px;margin:0 auto 1rem;background:linear-gradient(135deg,var(--accent),#8b5cf6);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px}
+   .form-input{width:100%;padding:.875rem 1rem.875rem 2.75rem;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.9375rem;margin-bottom:1.25rem}
+   .form-group{position:relative}
+   .form-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text2)}
+   .btn-primary{width:100%;padding:.875rem;background:var(--accent);border:none;border-radius:10px;color:white;font-weight:500;cursor:pointer}
     #app{display:flex;height:100vh}
-    .sidebar{width:260px;background:var(--bg-secondary);border-right:1px solid var(--border-color);display:flex;flex-direction:column}
-    .sidebar-header{padding:1.5rem;border-bottom:1px solid var(--border-color)}
-    .sidebar-brand{display:flex;align-items:center;gap:.75rem;font-weight:600;font-size:1.125rem}
-    .brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));border-radius:10px;display:flex;align-items:center;justify-content:center;color:white}
-    .sidebar-nav{flex:1;padding:1rem .75rem;overflow-y:auto}
-    .nav-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;margin-bottom:.25rem;border-radius:var(--radius-md);color:var(--text-secondary);cursor:pointer;transition:all var(--transition-fast);font-weight:500}
-    .nav-item:hover{background:rgba(255,255,255,.05);color:var(--text-primary)}
-    .nav-item.active{background:var(--accent-primary);color:white}
-    .nav-badge{margin-left:auto;background:rgba(255,255,255,.2);padding:.125rem .5rem;border-radius:12px;font-size:.75rem;font-weight:600}
-    .main-content{flex:1;display:flex;flex-direction:column;min-width:0}
-    .topbar{height:64px;background:rgba(17,24,39,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border-color);display:flex;align-items:center;padding:0 1.5rem;gap:1rem}
-    .topbar-title{font-size:1.25rem;font-weight:600;flex:1}
-    .content-area{flex:1;overflow-y:auto;padding:1.5rem}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}
-    .card{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:1.25rem;transition:all .25s;position:relative}
-    .card:hover{transform:translateY(-2px);border-color:var(--accent-primary);box-shadow:0 10px 15px -3px rgba(0,0,0,.1)}
-    .card-icon{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem;background:rgba(99,102,241,.15);color:var(--accent-primary)}
-    .card-icon.video{background:rgba(239,68,68,.15);color:var(--error)}
-    .card-icon.audio{background:rgba(16,185,129,.15);color:var(--success)}
-    .card-icon.image{background:rgba(245,158,11,.15);color:var(--warning)}
-    .card-title{font-weight:500;margin-bottom:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .card-meta{font-size:.8125rem;color:var(--text-secondary)}
-    .card-actions{margin-top:.75rem;display:flex;gap:.375rem;flex-wrap:wrap}
-    .btn{padding:.5rem .875rem;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-size:.8125rem;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:.375rem;white-space:nowrap;transition:all .15s}
-    .btn:hover{background:var(--bg-hover);border-color:var(--accent-primary)}
-    .btn-sm{padding:.375rem .625rem;font-size:.75rem}
-    .search-bar{display:flex;gap:.75rem;margin-bottom:1.5rem}
-    .search-input{flex:1;padding:.75rem 1rem .75rem 2.75rem;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-md);color:var(--text-primary)}
-    .search-input:focus{outline:none;border-color:var(--accent-primary)}
-    .search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text-tertiary);pointer-events:none}
-    .upload-zone{border:2px dashed var(--border-color);border-radius:var(--radius-lg);padding:3rem 2rem;text-align:center;background:var(--bg-tertiary);cursor:pointer;transition:all .25s;margin-bottom:1.5rem}
-    .upload-zone:hover{border-color:var(--accent-primary);background:rgba(99,102,241,.05)}
-    .upload-icon{font-size:3rem;color:var(--accent-primary);margin-bottom:1rem}
-    .player-modal{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem;backdrop-filter:blur(10px)}
-    .player-container{width:100%;max-width:1200px;background:#000;border-radius:var(--radius-lg);overflow:hidden}
-    .player-header{padding:1rem 1.5rem;background:var(--bg-secondary);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-color)}
-    .player-close{background:none;border:none;color:var(--text-secondary);font-size:1.5rem;cursor:pointer}
-    .toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:10000;display:flex;flex-direction:column;gap:.75rem}
-    .toast{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:10px;padding:1rem 1.25rem;box-shadow:0 10px 15px -3px rgba(0,0,0,.1);display:flex;align-items:center;gap:.75rem;min-width:300px;transform:translateX(400px);transition:transform .25s}
-    .toast.show{transform:translateX(0)}
-    .status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
-    .status-card{background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius-lg);padding:1.5rem}
-    .status-indicator{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:8px}
-    .status-indicator.active{background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2)}
-    .dropdown-menu{position:absolute;right:0;top:100%;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;padding:4px;min-width:160px;z-index:10;box-shadow:0 10px 15px -3px rgba(0,0,0,.3)}
-    .dropdown-item{padding:8px 12px;cursor:pointer;border-radius:4px;font-size:.8125rem}
-    .dropdown-item:hover{background:var(--bg-hover)}
+   .sidebar{width:260px;background:var(--bg-secondary);border-right:1px solid var(--border);display:flex;flex-direction:column}
+   .sidebar-header{padding:1.5rem;border-bottom:1px solid var(--border)}
+   .brand{display:flex;align-items:center;gap:.75rem;font-weight:600}
+   .brand-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center}
+   .nav{flex:1;padding:1rem.75rem}
+   .nav-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;margin-bottom:.25rem;border-radius:10px;color:var(--text2);cursor:pointer}
+   .nav-item:hover{background:rgba(255,255,255,.05);color:var(--text)}
+   .nav-item.active{background:var(--accent);color:white}
+   .nav-badge{margin-left:auto;background:rgba(255,255,255,.2);padding:.125rem.5rem;border-radius:12px;font-size:.75rem}
+   .main{flex:1;display:flex;flex-direction:column;min-width:0}
+   .topbar{height:64px;background:rgba(17,24,39,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.5rem;gap:1rem}
+   .topbar-title{font-size:1.25rem;font-weight:600;flex:1}
+   .content{flex:1;overflow-y:auto;padding:1.5rem}
+   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}
+   .card{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:16px;padding:1.25rem;transition:.25s;cursor:pointer}
+   .card:hover{transform:translateY(-2px);border-color:var(--accent)}
+   .card-icon{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:1rem;background:rgba(99,102,241,.15);color:var(--accent)}
+   .card-icon.video{background:rgba(239,68,68,.15);color:var(--error)}
+   .card-icon.audio{background:rgba(16,185,129,.15);color:var(--success)}
+   .card-icon.image{background:rgba(245,158,11,.15);color:#f59e0b}
+   .card-title{font-weight:500;margin-bottom:.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+   .card-meta{font-size:.8125rem;color:var(--text2)}
+   .card-actions{margin-top:.75rem;display:flex;gap:.375rem;flex-wrap:wrap}
+   .btn{padding:.5rem.875rem;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.8125rem;cursor:pointer;display:inline-flex;align-items:center;gap:.375rem}
+   .btn:hover{background:var(--bg-hover);border-color:var(--accent)}
+   .btn-sm{padding:.375rem.625rem;font-size:.75rem}
+   .search-bar{display:flex;gap:.75rem;margin-bottom:1.5rem}
+   .search-input{flex:1;padding:.75rem 1rem.75rem 2.75rem;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;color:var(--text)}
+   .search-wrap{flex:1;position:relative}
+   .search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text2)}
+   .upload-zone{border:2px dashed var(--border);border-radius:16px;padding:3rem 2rem;text-align:center;background:var(--bg-tertiary);cursor:pointer;margin-bottom:1.5rem}
+   .upload-zone:hover{border-color:var(--accent);background:rgba(99,102,241,.05)}
+   .upload-icon{font-size:3rem;color:var(--accent);margin-bottom:1rem}
+   .player-modal{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:2rem}
+   .player-container{width:100%;max-width:1200px;background:#000;border-radius:16px;overflow:hidden}
+   .player-header{padding:1rem 1.5rem;background:var(--bg-secondary);display:flex;justify-content:space-between;align-items:center}
+   .player-close{background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer}
+   .toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:10000;display:flex;flex-direction:column;gap:.75rem}
+   .toast{background:var(--bg-tertiary);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;display:flex;align-items:center;gap:.75rem;min-width:300px;transform:translateX(400px);transition:.25s}
+   .toast.show{transform:translateX(0)}
+   .dropdown-menu{position:absolute;right:0;top:100%;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:160px;z-index:10;box-shadow:0 10px 15px rgba(0,0,0,.3)}
+   .dropdown-item{padding:8px 12px;cursor:pointer;border-radius:4px;font-size:.8125rem}
+   .dropdown-item:hover{background:var(--bg-hover)}
   </style>
 </head>
 <body>
-  <div id="login-screen">
+  <div id="login">
     <div class="login-card">
       <div style="text-align:center;margin-bottom:2rem">
         <div class="login-logo"><i class="fas fa-database"></i></div>
-        <h1 style="font-size:1.5rem;font-weight:600;margin-bottom:.5rem">Archive Drive</h1>
-        <p style="color:var(--text-secondary);font-size:.875rem">v6.2.1 • Full Featured</p>
+        <h1 style="font-size:1.5rem;font-weight:600">Archive Drive</h1>
+        <p style="color:var(--text2);font-size:.875rem">v6.2.1</p>
       </div>
       <form id="login-form">
         <div class="form-group"><i class="fas fa-user form-icon"></i><input type="text" id="username" class="form-input" placeholder="Username" required></div>
         <div class="form-group"><i class="fas fa-lock form-icon"></i><input type="password" id="password" class="form-input" placeholder="Password" required></div>
-        <button type="submit" class="btn-primary"><i class="fas fa-sign-in-alt"></i>Sign In</button>
+        <button type="submit" class="btn-primary"><i class="fas fa-sign-in-alt"></i> Sign In</button>
       </form>
     </div>
   </div>
 
   <div id="app" class="hidden">
     <aside class="sidebar">
-      <div class="sidebar-header"><div class="sidebar-brand"><div class="brand-icon"><i class="fas fa-layer-group"></i></div><span>Archive Drive</span></div></div>
-      <nav class="sidebar-nav">
+      <div class="sidebar-header"><div class="brand"><div class="brand-icon"><i class="fas fa-layer-group"></i></div><span>Archive Drive</span></div></div>
+      <nav class="nav">
         <div class="nav-item active" data-page="drive"><i class="fas fa-folder-open"></i><span>Drive</span></div>
         <div class="nav-item" data-page="my"><i class="fas fa-cloud-arrow-up"></i><span>My Uploads</span><span class="nav-badge" id="upload-count">0</span></div>
         <div class="nav-item" data-page="upload"><i class="fas fa-upload"></i><span>Upload</span></div>
-        <div class="nav-item" data-page="status"><i class="fas fa-heart-pulse"></i><span>Status</span><span class="nav-badge" id="status-badge" style="background:var(--success)">5</span></div>
+        <div class="nav-item" data-page="status"><i class="fas fa-heart-pulse"></i><span>Status</span></div>
       </nav>
     </aside>
-
-    <main class="main-content">
+    <main class="main">
       <header class="topbar"><h1 class="topbar-title" id="page-title">Drive</h1><button class="btn" id="refresh-btn"><i class="fas fa-rotate"></i></button></header>
-      <div class="content-area">
+      <div class="content">
         <div id="page-drive" class="page">
-          <div class="search-bar"><div style="flex:1;position:relative"><i class="fas fa-search search-icon"></i><input type="text" id="drive-search" class="search-input" placeholder="Archive.org identifier..."></div><button class="btn" onclick="loadDrive()"><i class="fas fa-folder-open"></i>Open</button></div>
+          <div class="search-bar"><div class="search-wrap"><i class="fas fa-search search-icon"></i><input type="text" id="drive-search" class="search-input" placeholder="Archive.org identifier..."></div><button class="btn" onclick="loadDrive()"><i class="fas fa-folder-open"></i>Open</button></div>
           <div id="drive-grid" class="grid"></div>
         </div>
         <div id="page-my" class="page hidden">
@@ -111,39 +103,27 @@
           <div id="my-grid" class="grid"></div>
         </div>
         <div id="page-upload" class="page hidden">
-          <div class="upload-zone" id="upload-zone"><div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div><h3>Drop files here or click to browse</h3><p style="color:var(--text-secondary);font-size:.875rem;margin-top:.5rem">Max 5GB • All formats supported</p><input type="file" id="file-input" multiple hidden></div>
-          <div style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem"><h3 style="margin-bottom:1rem"><i class="fas fa-link" style="color:var(--accent-primary)"></i> Upload from URL</h3><div style="display:flex;gap:.75rem"><input type="url" id="url-input" class="search-input" placeholder="https://..." style="padding-left:1rem"><button class="btn" onclick="uploadFromUrl()"><i class="fas fa-download"></i>Download</button></div></div>
+          <div class="upload-zone" id="upload-zone"><div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div><h3>Drop files here or click</h3><p style="color:var(--text2);font-size:.875rem;margin-top:.5rem">Max 5GB</p><input type="file" id="file-input" multiple hidden></div>
           <div id="upload-list"></div>
         </div>
-        <div id="page-status" class="page hidden"><h2 style="margin-bottom:1rem">CDN Status</h2><div class="status-grid" id="status-grid"></div></div>
+        <div id="page-status" class="page hidden"><div id="status-grid"></div></div>
       </div>
     </main>
   </div>
-
   <div class="toast-container" id="toast-container"></div>
 
   <script>
-    const App={token:localStorage.getItem('archive_token'),webtorrent:null,init(){this.setup();this.checkAuth();if(this.token)this.webtorrent=new WebTorrent()},setup(){document.getElementById('login-form').addEventListener('submit',e=>{e.preventDefault();this.login()});document.querySelectorAll('.nav-item').forEach(i=>i.addEventListener('click',()=>this.navigate(i.dataset.page)));const z=document.getElementById('upload-zone'),f=document.getElementById('file-input');z.addEventListener('click',()=>f.click());z.addEventListener('dragover',e=>{e.preventDefault();z.style.borderColor='var(--accent-primary)'});z.addEventListener('dragleave',()=>z.style.borderColor='');z.addEventListener('drop',e=>{e.preventDefault();z.style.borderColor='';this.handleFiles(e.dataTransfer.files)});f.addEventListener('change',e=>this.handleFiles(e.target.files));document.getElementById('drive-search').addEventListener('keypress',e=>{if(e.key==='Enter')loadDrive()});document.getElementById('refresh-btn').addEventListener('click',()=>this.refresh())},checkAuth(){if(this.token){document.getElementById('login-screen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');this.loadInitial()}},async login(){const u=document.getElementById('username').value,p=document.getElementById('password').value;try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}),d=await r.json();if(d.token){this.token=d.token;localStorage.setItem('archive_token',this.token);location.reload()}else this.showToast('Invalid credentials','error')}catch(e){this.showToast('Login failed','error')}},navigate(p){document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.page===p));document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));document.getElementById(`page-${p}`).classList.remove('hidden');document.getElementById('page-title').textContent={drive:'Drive',my:'My Uploads',upload:'Upload',status:'Status'}[p];if(p==='my')this.loadMyUploads();if(p==='status')this.loadStatus()},getAuth(){return{'Authorization':`Bearer ${this.token}`}},showToast(m,t='info'){const c=document.getElementById('toast-container'),e=document.createElement('div');e.className='toast';e.innerHTML=`<i class="fas fa-${t==='success'?'check':t==='error'?'xmark':'info'}" style="color:var(--${t==='success'?'success':t==='error'?'error':'info'})"></i><div>${m}</div>`;c.appendChild(e);setTimeout(()=>e.classList.add('show'),10);setTimeout(()=>{e.classList.remove('show');setTimeout(()=>e.remove(),300)},4000)},async loadInitial(){try{const r=await fetch('/api/myitems',{headers:this.getAuth()}),d=await r.json();document.getElementById('upload-count').textContent=d.items?.length||0}catch{}},async loadMyUploads(){const g=document.getElementById('my-grid');g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary)"><i class="fas fa-spinner fa-spin" style="font-size:2rem"></i></div>';try{const r=await fetch('/api/myitems',{headers:this.getAuth()}),d=await r.json();if(!d.items?.length){g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary)">No uploads yet</div>';return}g.innerHTML=d.items.map(i=>`<div class="card" onclick="document.getElementById('drive-search').value='${i.identifier}';App.navigate('drive');loadDrive()"><div class="card-icon archive"><i class="fas fa-folder"></i></div><div class="card-title">${i.title||i.identifier}</div><div class="card-meta">${new Date(i.date||Date.now()).toLocaleDateString()}</div></div>`).join('');document.getElementById('upload-count').textContent=d.items.length}catch(e){g.innerHTML=`<div style="color:var(--error)">Error: ${e.message}</div>`}},async handleFiles(files){const l=document.getElementById('upload-list');for(const file of files){const item=document.createElement('div');item.className='card';item.style.marginBottom='.75rem';item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px"><i class="fas fa-spinner fa-spin"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta">${(file.size/1024/1024).toFixed(2)} MB • Uploading...</div></div></div>`;l.prepend(item);const fd=new FormData();fd.append('file',file);try{const r=await fetch('/api/upload',{method:'POST',headers:this.getAuth(),body:fd}),d=await r.json();if(d.success){item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px;background:rgba(16,185,129,.15);color:var(--success)"><i class="fas fa-check"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta" style="color:var(--success)">Uploaded • ID: ${d.id}</div></div></div>`;this.showToast(`Uploaded: ${file.name}`,'success');this.loadMyUploads();setTimeout(()=>this.loadMyUploads(),5000)}else throw new Error(d.error)}catch(e){item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px;background:rgba(239,68,68,.15);color:var(--error)"><i class="fas fa-xmark"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta" style="color:var(--error)">Failed: ${e.message}</div></div></div>`;this.showToast(`Failed: ${file.name}`,'error')}}},async loadStatus(){try{const r=await fetch('/api/status',{headers:this.getAuth()}),s=await r.json(),g=document.getElementById('status-grid');g.innerHTML=`<div class="status-card"><h3><span class="status-indicator active"></span>Cloudflare</h3><div style="font-size:2rem;font-weight:600;margin:.5rem 0">${s.cloudflare?.status||'Active'}</div><div style="color:var(--text-secondary);font-size:.875rem">Tier 1 • ${s.cloudflare?.latency||45}ms</div></div><div class="status-card"><h3><span class="status-indicator active"></span>IPFS</h3><div style="font-size:2rem;font-weight:600;margin:.5rem 0">${s.ipfs?.gateways?.filter(x=>x.status==='active').length||2}</div><div style="color:var(--text-secondary);font-size:.875rem">Tier 2 • Active gateways</div></div><div class="status-card"><h3><span class="status-indicator active"></span>WebTorrent</h3><div style="font-size:2rem;font-weight:600;margin:.5rem 0">${s.webtorrent?.peers||0}</div><div style="color:var(--text-secondary);font-size:.875rem">P2P peers</div></div>`}catch{}},refresh(){const p=document.querySelector('.nav-item.active').dataset.page;if(p==='my')this.loadMyUploads();else if(p==='status')this.loadStatus();else if(p==='drive'&&document.getElementById('drive-search').value)loadDrive();this.showToast('Refreshed','success')}};
+    const App={token:localStorage.getItem('archive_token'),init(){document.getElementById('login-form').addEventListener('submit',e=>{e.preventDefault();this.login()});document.querySelectorAll('.nav-item').forEach(i=>i.addEventListener('click',()=>this.navigate(i.dataset.page)));const z=document.getElementById('upload-zone'),f=document.getElementById('file-input');z.onclick=()=>f.click();z.ondragover=e=>{e.preventDefault();z.style.borderColor='var(--accent)'};z.ondragleave=()=>z.style.borderColor='';z.ondrop=e=>{e.preventDefault();z.style.borderColor='';this.handleFiles(e.dataTransfer.files)};f.onchange=e=>this.handleFiles(e.target.files);document.getElementById('drive-search').onkeypress=e=>{if(e.key==='Enter')loadDrive()};document.getElementById('refresh-btn').onclick=()=>this.refresh();if(this.token)this.checkAuth()},checkAuth(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');this.loadMyUploads()},async login(){const u=username.value,p=password.value;try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}),d=await r.json();if(d.token){this.token=d.token;localStorage.setItem('archive_token',d.token);location.reload()}else this.toast('Invalid','error')}catch{this.toast('Login failed','error')}},navigate(p){document.querySelectorAll('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.page===p));document.querySelectorAll('.page').forEach(x=>x.classList.add('hidden'));document.getElementById(`page-${p}`).classList.remove('hidden');document.getElementById('page-title').textContent={drive:'Drive',my:'My Uploads',upload:'Upload',status:'Status'}[p];if(p==='my')this.loadMyUploads();if(p==='status')this.loadStatus()},getAuth(){return{'Authorization':`Bearer ${this.token}`}},toast(m,t='info'){const c=document.getElementById('toast-container'),e=document.createElement('div');e.className='toast';e.innerHTML=`<i class="fas fa-${t==='success'?'check-circle':t==='error'?'xmark-circle':'info-circle'}" style="color:var(--${t==='success'?'success':t==='error'?'error':'accent'})"></i><div>${m}</div>`;c.appendChild(e);setTimeout(()=>e.classList.add('show'),10);setTimeout(()=>{e.classList.remove('show');setTimeout(()=>e.remove(),300)},4000)},async loadMyUploads(){const g=document.getElementById('my-grid');g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--text2)"></i></div>';try{const r=await fetch('/api/myitems',{headers:this.getAuth()}),d=await r.json();document.getElementById('upload-count').textContent=d.items?.length||0;if(!d.items?.length){g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text2)">No uploads yet</div>';return}g.innerHTML='';for(const item of d.items.slice(0,10)){try{const fr=await fetch(`/api/files/${item.identifier}`,{headers:this.getAuth()}),fd=await fr.json();if(fd.files?.length){const sec=document.createElement('div');sec.style.gridColumn='1/-1';sec.innerHTML=`<h3 style="margin:1.5rem 0.75rem;font-size:1rem;color:var(--text2);display:flex;align-items:center;gap:.5rem"><i class="fas fa-folder"></i>${item.title||item.identifier}<span style="font-size:.75rem;background:var(--bg-tertiary);padding:.25rem.5rem;border-radius:12px">${fd.files.length} files</span></h3><div class="grid"></div>`;sec.querySelector('.grid').innerHTML=fd.files.map(f=>{const t=f.type,ic=t==='video'?'fa-film':t==='audio'?'fa-music':t==='image'?'fa-image':'fa-file',sz=(f.size/1024/1024).toFixed(2);return`<div class="card" style="cursor:default"><div class="card-icon ${t}"><i class="fas ${ic}"></i></div><div class="card-title" title="${f.name}">${f.name}</div><div class="card-meta">${sz} MB</div><div class="card-actions">${t==='video'||t==='audio'?`<button class="btn btn-sm" onclick="event.stopPropagation();openFile('${f.streamUrl}','${t}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-play"></i>Play</button>`:''}${t==='image'?`<button class="btn btn-sm" onclick="event.stopPropagation();openImage('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i>View</button>`:''}<button class="btn btn-sm" onclick="event.stopPropagation();downloadFile('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-download"></i></button><button class="btn btn-sm" onclick="event.stopPropagation();copyToClipboard('${f.streamUrl}')"><i class="fas fa-link"></i></button><div style="position:relative"><button class="btn btn-sm" onclick="event.stopPropagation();toggleMenu(this)"><i class="fas fa-ellipsis"></i></button><div class="dropdown-menu hidden"><div class="dropdown-item" onclick="copyToClipboard('${f.torrent}')"><i class="fas fa-magnet"></i> Copy Magnet</div><div class="dropdown-item" onclick="copyToClipboard('${f.ipfsUrl}')"><i class="fas fa-cube"></i> Copy IPFS</div></div></div></div></div>`}).join('');g.appendChild(sec)}}catch{}}if(d.items.length>10){const m=document.createElement('div');m.style.gridColumn='1/-1';m.innerHTML=`<div style="text-align:center;padding:2rem;color:var(--text2)">${d.items.length-10} more items... use Drive search</div>`;g.appendChild(m)}}catch(e){g.innerHTML=`<div style="color:var(--error)">Error: ${e.message}</div>`}},async handleFiles(files){const l=document.getElementById('upload-list');for(const file of files){const item=document.createElement('div');item.className='card';item.style.marginBottom='.75rem';item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px"><i class="fas fa-spinner fa-spin"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta">${(file.size/1024/1024).toFixed(2)} MB • Uploading...</div></div></div>`;l.prepend(item);const fd=new FormData();fd.append('file',file);try{const r=await fetch('/api/upload',{method:'POST',headers:this.getAuth(),body:fd}),d=await r.json();if(d.success){item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px;background:rgba(16,185,129,.15);color:var(--success)"><i class="fas fa-check"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta" style="color:var(--success)">Uploaded</div></div></div>`;this.toast(`Uploaded: ${file.name}`,'success');setTimeout(()=>this.loadMyUploads(),2000)}else throw new Error(d.error)}catch(e){item.innerHTML=`<div style="display:flex;align-items:center;gap:1rem"><div class="card-icon" style="margin:0;width:40px;height:40px;background:rgba(239,68,68,.15);color:var(--error)"><i class="fas fa-xmark"></i></div><div style="flex:1"><div class="card-title">${file.name}</div><div class="card-meta" style="color:var(--error)">Failed</div></div></div>`;this.toast('Upload failed','error')}}},async loadStatus(){const g=document.getElementById('status-grid');try{const r=await fetch('/api/status',{headers:this.getAuth()}),s=await r.json();g.innerHTML=`<div class="grid"><div class="card"><h3>Cloudflare</h3><div style="font-size:2rem;font-weight:600;color:var(--success)">${s.cloudflare.status}</div></div><div class="card"><h3>IPFS Gateways</h3><div style="font-size:2rem;font-weight:600">${s.ipfs.gateways.length}</div></div><div class="card"><h3>WebTorrent</h3><div style="font-size:2rem;font-weight:600">${s.webtorrent.peers} peers</div></div></div>`}catch{}},refresh(){this.navigate(document.querySelector('.nav-item.active').dataset.page)}};
 
-    async function loadDrive(){const id=document.getElementById('drive-search').value.trim();if(!id)return App.showToast('Enter identifier','warning');const g=document.getElementById('drive-grid');g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:var(--text-secondary)"></i></div>';try{const r=await fetch(`/api/files/${id}`,{headers:App.getAuth()}),d=await r.json();if(!d.files?.length){g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-secondary)">No files found</div>';return}g.innerHTML=d.files.map(f=>{const t=f.type,ic=t==='video'?'fa-film':t==='audio'?'fa-music':t==='image'?'fa-image':'fa-file',sz=(f.size/1024/1024).toFixed(2);return`<div class="card"><div class="card-icon ${t}"><i class="fas ${ic}"></i></div><div class="card-title" title="${f.name}">${f.name}</div><div class="card-meta">${sz} MB • ${t}</div><div class="card-actions">${t==='video'||t==='audio'?`<button class="btn btn-sm" onclick="openFile('${f.streamUrl}','${t}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-play"></i>Play</button>`:''}${t==='image'?`<button class="btn btn-sm" onclick="openImage('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i>View</button>`:''}<button class="btn btn-sm" onclick="downloadFile('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-download"></i></button><button class="btn btn-sm" onclick="copyToClipboard('${f.streamUrl}')"><i class="fas fa-link"></i></button><div style="position:relative"><button class="btn btn-sm" onclick="toggleMenu(this)"><i class="fas fa-ellipsis"></i></button><div class="dropdown-menu hidden"><div class="dropdown-item" onclick="copyToClipboard('${f.torrent}')"><i class="fas fa-magnet"></i> Copy Magnet</div><div class="dropdown-item" onclick="copyToClipboard('${f.ipfsUrl||''}')"><i class="fas fa-cube"></i> Copy IPFS</div><div class="dropdown-item" onclick="shareFile('${f.name}','${f.streamUrl}')"><i class="fas fa-share"></i> Share</div></div></div></div></div>`}).join('')}catch(e){g.innerHTML=`<div style="color:var(--error)">Error: ${e.message}</div>`}}
+    async function loadDrive(){const id=document.getElementById('drive-search').value.trim();if(!id)return;const g=document.getElementById('drive-grid');g.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:3rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem"></i></div>';try{const r=await fetch(`/api/files/${id}`,{headers:App.getAuth()}),d=await r.json();g.innerHTML=d.files.map(f=>{const t=f.type,ic=t==='video'?'fa-film':t==='audio'?'fa-music':t==='image'?'fa-image':'fa-file',sz=(f.size/1024/1024).toFixed(2);return`<div class="card" style="cursor:default"><div class="card-icon ${t}"><i class="fas ${ic}"></i></div><div class="card-title">${f.name}</div><div class="card-meta">${sz} MB</div><div class="card-actions">${t==='video'||t==='audio'?`<button class="btn btn-sm" onclick="openFile('${f.streamUrl}','${t}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-play"></i>Play</button>`:''}${t==='image'?`<button class="btn btn-sm" onclick="openImage('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i>View</button>`:''}<button class="btn btn-sm" onclick="downloadFile('${f.streamUrl}','${f.name.replace(/'/g,"\\'")}')"><i class="fas fa-download"></i></button><button class="btn btn-sm" onclick="copyToClipboard('${f.streamUrl}')"><i class="fas fa-link"></i></button></div></div>`}).join('')}catch(e){g.innerHTML=`<div style="color:var(--error)">${e.message}</div>`}}
 
-    function openFile(url,type,name){const m=document.createElement('div');m.className='player-modal';m.innerHTML=`<div class="player-container"><div class="player-header"><div>${name}</div><button class="player-close" onclick="this.closest('.player-modal').remove()">×</button></div><${type==='video'?'video':'audio'} id="player" controls autoplay playsinline style="width:100%;${type==='video'?'max-height:80vh':''}"><source src="${url}"></${type==='video'?'video':'audio'}></div>`;document.body.appendChild(m);new Plyr('#player',{controls:['play-large','play','progress','current-time','mute','volume','settings','fullscreen']});m.onclick=e=>{if(e.target===m)m.remove()}}
-    
-    function openImage(url,name){const m=document.createElement('div');m.className='player-modal';m.innerHTML=`<div style="position:relative;max-width:90vw;max-height:90vh"><img src="${url}" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:12px"><button onclick="this.closest('.player-modal').remove()" style="position:absolute;top:-10px;right:-10px;background:white;color:black;border:0;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px">×</button><div style="text-align:center;color:white;margin-top:12px">${name}</div></div>`;m.onclick=e=>{if(e.target===m)m.remove()};document.body.appendChild(m)}
-    
-    function downloadFile(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();App.showToast('Download started','success')}
-    
-    function copyToClipboard(t){navigator.clipboard.writeText(t).then(()=>App.showToast('Copied to clipboard','success'))}
-    
+    function openFile(url,type,name){const m=document.createElement('div');m.className='player-modal';m.innerHTML=`<div class="player-container"><div class="player-header"><div>${name}</div><button class="player-close" onclick="this.closest('.player-modal').remove()">×</button></div><${type==='video'?'video':'audio'} id="player" controls autoplay playsinline style="width:100%"><source src="${url}"></${type==='video'?'video':'audio'}></div>`;document.body.appendChild(m);new Plyr('#player');m.onclick=e=>{if(e.target===m)m.remove()}}
+    function openImage(url,name){const m=document.createElement('div');m.className='player-modal';m.innerHTML=`<div style="position:relative;max-width:90vw;max-height:90vh"><img src="${url}" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:12px"><button onclick="this.closest('.player-modal').remove()" style="position:absolute;top:-10px;right:-10px;background:white;color:black;border:0;width:32px;height:32px;border-radius:50%;cursor:pointer">×</button></div>`;m.onclick=e=>{if(e.target===m)m.remove()};document.body.appendChild(m)}
+    function downloadFile(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();App.toast('Download started','success')}
+    function copyToClipboard(t){navigator.clipboard.writeText(t).then(()=>App.toast('Copied','success'))}
     function toggleMenu(b){const m=b.nextElementSibling;document.querySelectorAll('.dropdown-menu').forEach(x=>{if(x!==m)x.classList.add('hidden')});m.classList.toggle('hidden')}
-    
-    function shareFile(n,u){if(navigator.share)navigator.share({title:n,url:u});else copyToClipboard(u)}
-    
-    async function uploadFromUrl(){const u=document.getElementById('url-input').value.trim();if(!u)return App.showToast('Enter URL','warning');try{const r=await fetch('/api/upload-url',{method:'POST',headers:{...App.getAuth(),'Content-Type':'application/json'},body:JSON.stringify({url:u})}),d=await r.json();if(d.success){App.showToast('URL download started','success');document.getElementById('url-input').value='';setTimeout(()=>App.loadMyUploads(),3000)}else throw new Error(d.error)}catch(e){App.showToast('Failed: '+e.message,'error')}}
-    
-    document.addEventListener('click',e=>{if(!e.target.closest('[onclick*="toggleMenu"]'))document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.add('hidden'))});
+    document.addEventListener('click',e=>{if(!e.target.closest('.dropdown-menu')&&!e.target.closest('[onclick*="toggleMenu"]'))document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.add('hidden'))});
     document.addEventListener('DOMContentLoaded',()=>App.init());
-    window.App=App;window.loadDrive=loadDrive;window.openFile=openFile;window.openImage=openImage;window.downloadFile=downloadFile;window.copyToClipboard=copyToClipboard;window.toggleMenu=toggleMenu;window.shareFile=shareFile;window.uploadFromUrl=uploadFromUrl;
   </script>
 </body>
 </html>
