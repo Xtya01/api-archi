@@ -60,7 +60,7 @@ app.get('/api/files/:id', auth, async (req, res) => {
     const ALLOWED = ['png','jpg','jpeg','gif','webp','svg','mp4','webm','mov','m4v','avi','mkv','mp3','wav','flac','m4a','pdf','txt','md','zip','rar','7z','epub','csv','json'];
     const files = (data.files || [])
       .filter(f => f.source === 'original' && !f.name.startsWith('_') && ALLOWED.includes(f.name.split('.').pop().toLowerCase()))
-      .map(f => ({ name: f.name, size: f.size || 0, ext: f.name.split('.').pop().toLowerCase(), url: `https://archive.org/download/${req.params.id}/${encodeURIComponent(f.name)}` }))
+      .map(f => ({ name: f.name, size: f.size || 0, ext: f.name.split('.').pop().toLowerCase(), url: `https://arch.visdrive.workers.dev/ia/${req.params.id}/${encodeURIComponent(f.name)}` }))
       .sort((a, b) => b.size - a.size);
     
     const result = { files };
