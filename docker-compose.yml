@@ -1,12 +1,15 @@
 version: '3.8'
+
 services:
   archive-drive:
     build: .
+    container_name: archive-drive
     ports:
-      - "3000:3000"
+      - "1003:3000"
     environment:
       - IA_ACCESS_KEY=${IA_ACCESS_KEY}
       - IA_SECRET_KEY=${IA_SECRET_KEY}
       - IA_EMAIL=${IA_EMAIL}
+      - PORT=3000
       - NODE_ENV=production
     restart: unless-stopped
