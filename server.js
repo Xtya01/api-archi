@@ -1,141 +1,132 @@
+docker exec -it archive-drive sh
+cd /app
+cat > server.js << 'EOF'
 const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
 const session = require('express-session');
+const multer = require('multer');
 const path = require('path');
-const axios = require('axios');
-const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
-const { Upload } = require('@aws-sdk/lib-storage');
+const { S3Client, ListBucketsCommand, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5GB
 
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'archive123';
-
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'archive-drive-secret-change-me',
+  secret: process.env.SESSION_SECRET || 'archive-drive-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7*24*60*60*1000, httpOnly: true, sameSite: 'lax' }
+  cookie: { maxAge: 86400000 }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5*1024*1024*1024 } });
+const s3 = new S3Client({
+  endpoint: 'https://s3.us.archive.org',
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.IA_ACCESS_KEY,
+    secretAccessKey: process.env.IA_SECRET_KEY
+  },
+  forcePathStyle: true
+});
 
-function getS3() {
-  return new S3Client({
-    endpoint: 'https://s3.us.archive.org',
-    region: 'us-east-1',
-    credentials: { accessKeyId: process.env.IA_ACCESS_KEY, secretAccessKey: process.env.IA_SECRET_KEY },
-    forcePathStyle: true
-  });
-}
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'archive123';
+const IA_USER = process.env.IA_USERNAME || 'namaycb';
 
 function requireAuth(req, res, next) {
-  if (req.session && req.session.authenticated) return next();
-  return res.status(401).json({ error: 'Unauthorized' });
+  if (req.session.auth) return next();
+  res.status(401).json({ error: 'Login required' });
 }
 
-// Auth routes
+// Login
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    req.session.authenticated = true;
-    req.session.user = username;
-    return res.json({ success: true, user: username });
-  }
-  res.status(401).json({ error: 'Invalid credentials' });
-});
-
-app.post('/api/logout', (req, res) => {
-  req.session.destroy(() => res.json({ success: true }));
-});
-
-app.get('/api/me', (req, res) => {
-  if (req.session?.authenticated) {
-    res.json({ authenticated: true, user: req.session.user });
+  const { user, pass } = req.body;
+  if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    req.session.auth = true;
+    res.json({ ok: true });
   } else {
-    res.json({ authenticated: false });
+    res.status(401).json({ error: 'Invalid credentials' });
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    hasKeys: !!(process.env.IA_ACCESS_KEY && process.env.IA_SECRET_KEY),
-    email: process.env.IA_EMAIL || '',
-    authenticated: !!req.session?.authenticated
-  });
-});
-
-// Protected routes
-app.get('/api/items', requireAuth, async (req, res) => {
+// List buckets
+app.get('/api/buckets', requireAuth, async (req, res) => {
   try {
-    const s3 = getS3();
     const data = await s3.send(new ListBucketsCommand({}));
-    const items = (data.Buckets || []).map(b => ({ name: b.Name, created: b.CreationDate }));
-    res.json({ items });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.json(data.Buckets || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-app.post('/api/upload/new', requireAuth, upload.array('files'), async (req, res) => {
+// Upload - FIXED FOR IA
+app.post('/api/upload/new', requireAuth, upload.single('file'), async (req, res) => {
   try {
-    const { title, description, collection } = req.body;
-    const files = req.files;
-    if (!title) return res.status(400).json({ error: 'Title required' });
-    const identifier = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').substring(0,80)+'-'+Date.now();
-    const s3 = getS3();
-    for (const file of files) {
-      await new Upload({
-        client: s3,
-        params: {
-          Bucket: identifier,
-          Key: file.originalname,
-          Body: file.buffer,
-          Metadata: {
-            'x-archive-meta-title': title,
-            'x-archive-meta-description': description||'',
-            'x-archive-meta-collection': collection||'opensource',
-            'x-archive-meta-creator': process.env.IA_EMAIL||'',
-            'x-archive-auto-make-bucket': '1'
-          },
-          ACL: 'public-read'
-        }
-      }).done();
+    if (!req.file) return res.status(400).json({ error: 'No file' });
+    
+    const file = req.file;
+    let identifier = (req.body.identifier || `upload-${Date.now()}`)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .substring(0, 80);
+    
+    if (!identifier.startsWith(IA_USER.toLowerCase() + '-')) {
+      identifier = `${IA_USER.toLowerCase()}-${identifier}`;
     }
-    res.json({ success: true, identifier, itemUrl: `https://archive.org/details/${identifier}` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    console.log(`[UPLOAD] ${identifier}/${file.originalname} (${file.size} bytes)`);
+
+    const cmd = new PutObjectCommand({
+      Bucket: identifier,
+      Key: file.originalname,
+      Body: file.buffer,
+      ACL: 'public-read',
+      ContentType: file.mimetype || 'application/octet-stream'
+    });
+
+    // IA requires these exact headers
+    cmd.middlewareStack.add((next) => async (args) => {
+      args.request.headers['x-archive-auto-make-bucket'] = '1';
+      args.request.headers['x-archive-meta01-collection'] = 'opensource';
+      args.request.headers['x-archive-meta01-mediatype'] = 'data';
+      args.request.headers['x-archive-meta01-title'] = identifier;
+      args.request.headers['x-archive-meta01-creator'] = IA_USER;
+      args.request.headers['x-archive-meta01-description'] = `Uploaded via Archive Drive on ${new Date().toISOString()}`;
+      args.request.headers['x-archive-interactive-priority'] = '1';
+      args.request.headers['x-archive-queue-derive'] = '0';
+      args.request.headers['x-archive-size-hint'] = String(file.size);
+      return next(args);
+    }, { step: 'build', name: 'addIAHeaders' });
+
+    await s3.send(cmd);
+    
+    res.json({ 
+      success: true, 
+      identifier,
+      url: `https://archive.org/details/${identifier}`,
+      file: file.originalname
+    });
+  } catch (e) {
+    console.error('[UPLOAD ERROR]', e.Code, e.message);
+    res.status(500).json({ error: `${e.Code || 'UploadFailed'}: ${e.message}` });
   }
 });
 
-app.post('/api/upload/url', requireAuth, async (req, res) => {
+// List files in bucket
+app.get('/api/files/:bucket', requireAuth, async (req, res) => {
   try {
-    const { url, title } = req.body;
-    const identifier = title.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now();
-    const response = await axios({ url, responseType: 'stream', timeout: 300000 });
-    const filename = url.split('/').pop().split('?')[0] || 'file.bin';
-    await new Upload({
-      client: getS3(),
-      params: {
-        Bucket: identifier,
-        Key: filename,
-        Body: response.data,
-        Metadata: { 'x-archive-meta-title': title, 'x-archive-meta-source': url, 'x-archive-auto-make-bucket':'1' },
-        ACL: 'public-read'
-      }
-    }).done();
-    res.json({ success: true, identifier, itemUrl: `https://archive.org/details/${identifier}` });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const data = await s3.send(new ListObjectsV2Command({ Bucket: req.params.bucket }));
+    res.json(data.Contents || []);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Archive Drive running on ${PORT}`));
+app.listen(1003, '0.0.0.0', () => {
+  console.log(`Archive Drive running on port 1003`);
+  console.log(`IA User: ${IA_USER}`);
+});
+EOF
