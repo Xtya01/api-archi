@@ -1,10 +1,6 @@
 FROM node:20-slim
 WORKDIR /app
-
-# Copy everything
 COPY . .
-
-# Install at container start, not during build
-CMD sh -c "npm install --omit=dev && node server.js"
-
+RUN npm install --omit=dev
 EXPOSE 3000
+CMD ["node", "server.js"]
