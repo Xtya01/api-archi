@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Archive Drive — Material 3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Google Sans"', 'Inter', 'system-ui'] },
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <style>
+    :root { color-scheme: light dark; }
+   .material-symbols-rounded { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+   .filled { font-variation-settings: 'FILL' 1; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #79747e; border-radius: 4px; }
+   .dark ::-webkit-scrollbar-thumb { background: #938f99; }
+
+    /* Dialog centering fix */
+    dialog {
+      margin: auto;
+      position: fixed;
+      inset: 0;
+      max-height: 90vh;
+    }
+    dialog::backdrop {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+  </style>
+</head>
+<body class="h-full bg-[#fcf8ff] text-[#1c1b1f] antialiased dark:bg-[#141218] dark:text-[#e6e0e9]">
+  <div class="flex h-full">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-[280px] shrink-0 flex-col border-r border-[#cac4d0] bg-[#f7f2fa] dark:border-[#2b2930] dark:bg-[#1c1b1f] md:flex">
+      <div class="flex h-[72px] items-center gap-3 px-5">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d3e3fd] text-[#001d35] shadow">
+          <span class="material-symbols-rounded">cloud</span>
+        </div>
+        <div>
+          <div class="text-[22px] font-medium leading-6 tracking-tight text-[#1c1b1f] dark:text-white">Drive</div>
+          <div class="text-[11px] text-[#49454f] dark:text-[#cac4d0]">archive.org</div>
+        </div>
+      </div>
+
+      <div class="px-3 pb-3">
+        <button onclick="openUpload()" class="group relative flex h-14 w-full items-center gap-3 overflow-hidden rounded-2xl bg-[#d3e3fd] px-5 text-[15px] font-medium text-[#001d35] shadow transition-all hover:shadow-lg active:scale-[.98] dark:bg-[#0842a0] dark:text-[#d3e3fd]">
+          <span class="material-symbols-rounded text-[22px]">add</span>
+          <span>New</span>
+        </button>
+      </div>
+
+      <nav class="flex-1 space-y-1 px-3 overflow-y-auto">
+        <a class="flex items-center gap-3 rounded-full bg-[#cfe5ff] px-4 py-[11px] text-[14px] font-medium text-[#001d35] dark:bg-[#004a77] dark:text-white">
+          <span class="material-symbols-rounded filled text-[20px]">hard_drive_2</span>
+          My Drive
+        </a>
+        <a class="flex items-center gap-3 rounded-full px-4 py-[11px] text-[14px] text-[#49454f] hover:bg-black/5 dark:text-[#e6e0e9] dark:hover:bg-white/10">
+          <span class="material-symbols-rounded text-[20px]">history</span>
+          Recent
+        </a>
+        <a class="flex items-center gap-3 rounded-full px-4 py-[11px] text-[14px] text-[#49454f] hover:bg-black/5 dark:text-[#e6e0e9] dark:hover:bg-white/10">
+          <span class="material-symbols-rounded text-[20px]">star</span>
+          Starred
+        </a>
+
+        <div class="my-3 h-px bg-[#cac4d0] dark:bg-[#2b2930]"></div>
+
+        <div class="px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[#49454f] dark:text-[#cac4d0]">Storage</div>
+        <div class="mx-3 rounded-2xl bg-[#ebe6ee] p-3.5 dark:bg-[#211f26]">
+          <div class="flex items-center justify-between text-[13px]">
+            <span class="font-medium text-[#1c1b1f] dark:text-white">Archive.org</span>
+            <span id="storagePct" class="font-medium text-[#49454f] dark:text-[#cac4d0]">—</span>
+          </div>
+          <div class="mt-2.5 h-2 overflow-hidden rounded-full bg-[#cac4d0]/40 dark:bg-[#49454f]/40">
+            <div id="storageBar" class="h-full w-0 rounded-full bg-[#0b57d0] transition-all duration-500 dark:bg-[#a8c7fa]"></div>
+          </div>
+          <div id="storageText" class="mt-2 text-[12px] font-medium text-[#49454f] dark:text-[#cac4d0]">Loading...</div>
+        </div>
+
+        <div class="mt-4 px-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-[#49454f] dark:text-[#cac4d0] mb-2">My Items</div>
+          <div id="sidebarItems" class="space-y-1 max-h-[200px] overflow-y-auto"></div>
+        </div>
+      </nav>
+
+      <div class="border-t border-[#cac4d0] p-3 dark:border-[#2b2930]">
+        <button class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] hover:bg-black/5 dark:hover:bg-white/10">
+          <img src="https://archive.org/images/ia-logo.svg" class="h-7 w-7 rounded-full bg-white p-1" alt="">
+          <div class="flex-1 text-left">
+            <div class="font-medium leading-4 text-[#1c1b1f] dark:text-white" id="accountEmail">Loading...</div>
+            <div class="text-[11px] text-[#49454f] dark:text-[#cac4d0]">Internet Archive</div>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex min-w-0 flex-1 flex-col md:ml-[280px]">
+      <header class="sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-[#cac4d0] bg-[#fcf8ff]/90 px-3 backdrop-blur-2xl dark:border-[#2b2930] dark:bg-[#141218]/90 sm:px-4">
+        <button class="flex h-10 w-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 md:hidden" onclick="toggleSidebar()">
+          <span class="material-symbols-rounded">menu</span>
+        </button>
+
+        <div class="relative hidden max-w-[720px] flex-1 sm:block">
+          <div class="flex h-11 items-center gap-3 rounded-full bg-[#ebe6ee] px-4 transition-all focus-within:bg-[#e6e0e9] focus-within:ring-2 focus-within:ring-[#0b57d0]/30 dark:bg-[#211f26] dark:focus-within:bg-[#2b2930]">
+            <span class="material-symbols-rounded text-[22px] text-[#49454f] dark:text-[#cac4d0]">search</span>
+            <input id="search" placeholder="Search in Drive" class="w-full bg-transparent text-[15px] text-[#1c1b1f] outline-none placeholder:text-[#49454f] dark:text-white dark:placeholder:text-[#cac4d0]">
+          </div>
+        </div>
+
+        <div class="ml-auto flex items-center gap-1">
+          <button class="flex h-10 w-10 items-center justify-center rounded-full text-[#49454f] hover:bg-black/5 dark:text-[#cac4d0] dark:hover:bg-white/10" title="Grid" onclick="setView('grid')">
+            <span class="material-symbols-rounded text-[22px]">grid_view</span>
+          </button>
+          <button class="flex h-10 w-10 items-center justify-center rounded-full text-[#49454f] hover:bg-black/5 dark:text-[#cac4d0] dark:hover:bg-white/10" title="List" onclick="setView('list')">
+            <span class="material-symbols-rounded text-[22px]">view_list</span>
+          </button>
+          <div class="mx-1 h-6 w-px bg-[#cac4d0] dark:bg-[#49454f]"></div>
+          <button id="themeToggle" class="flex h-10 w-10 items-center justify-center rounded-full text-[#49454f] hover:bg-black/5 dark:text-[#cac4d0] dark:hover:bg-white/10" title="Toggle theme">
+            <span class="material-symbols-rounded text-[22px]">dark_mode</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="flex items-center gap-2 border-b border-[#e6e0e9] bg-[#f7f2fa]/70 px-4 py-2.5 backdrop-blur dark:border-[#2b2930] dark:bg-[#1c1b1f]/70">
+        <div class="flex items-center gap-1 text-[14px]">
+          <button class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium text-[#1c1b1f] hover:bg-black/5 dark:text-white dark:hover:bg-white/10">
+            <span class="material-symbols-rounded text-[20px]">home</span>
+            <span>My Drive</span>
+          </button>
+          <span class="material-symbols-rounded text-[18px] text-[#49454f] dark:text-[#cac4d0]">chevron_right</span>
+          <span id="currentFolder" class="font-medium text-[#49454f] dark:text-[#cac4d0]">—</span>
+        </div>
+      </div>
+
+      <main class="relative flex-1 overflow-hidden bg-[#fcf8ff] dark:bg-[#141218]">
+        <div id="scrollArea" class="h-full overflow-auto">
+          <div class="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
+            <div class="mb-8">
+              <h2 class="mb-3 text-[12px] font-bold uppercase tracking-widest text-[#49454f] dark:text-[#cac4d0]">Quick Access</h2>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <button class="group relative overflow-hidden rounded-3xl border border-[#e6e0e9] bg-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-[#2b2930] dark:bg-[#1c1b1f]">
+                  <span class="material-symbols-rounded text-[32px] text-[#0b57d0] dark:text-[#a8c7fa]">folder</span>
+                  <div class="mt-3 text-[15px] font-medium text-[#1c1b1f] dark:text-white">Recent uploads</div>
+                  <div class="text-[13px] text-[#49454f] dark:text-[#cac4d0]">12 items</div>
+                </button>
+                <button class="group relative overflow-hidden rounded-3xl border border-[#e6e0e9] bg-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-[#2b2930] dark:bg-[#1c1b1f]">
+                  <span class="material-symbols-rounded text-[32px] text-[#00639b] dark:text-[#7fcfff]">image</span>
+                  <div class="mt-3 text-[15px] font-medium text-[#1c1b1f] dark:text-white">Images</div>
+                  <div class="text-[13px] text-[#49454f] dark:text-[#cac4d0]">—</div>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="mb-3 flex items-center justify-between">
+                <h2 class="text-[12px] font-bold uppercase tracking-widest text-[#49454f] dark:text-[#cac4d0]">Files</h2>
+                <span id="fileCount" class="text-[13px] font-medium text-[#49454f] dark:text-[#cac4d0]">—</span>
+              </div>
+
+              <div id="listView" class="overflow-hidden rounded-2xl border border-[#e6e0e9] bg-white shadow-sm dark:border-[#2b2930] dark:bg-[#1c1b1f]">
+                <div class="grid grid-cols-[48px_1fr_140px_120px_48px] items-center gap-4 border-b border-[#e6e0e9] bg-[#f7f2fa] px-4 py-3 text-[12px] font-semibold uppercase tracking-wide text-[#49454f] dark:border-[#2b2930] dark:bg-[#211f26] dark:text-[#cac4d0]">
+                  <div></div><div>Name</div><div class="hidden md:block">Owner</div><div class="hidden sm:block">Modified</div><div></div>
+                </div>
+                <div id="listBody" class="divide-y divide-[#f1ecf4] dark:divide-[#2b2930]"></div>
+              </div>
+
+              <div id="gridView" class="hidden"><div id="gridBody" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"></div></div>
+
+              <div id="emptyState" class="hidden py-20 text-center">
+                <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[#ebe6ee] dark:bg-[#211f26]">
+                  <span class="material-symbols-rounded text-[56px] text-[#49454f] dark:text-[#cac4d0]">drive_folder_upload</span>
+                </div>
+                <h3 class="mt-6 text-[24px] font-medium text-[#1c1b1f] dark:text-white">Drop files here</h3>
+                <p class="mx-auto mt-2 max-w-sm text-[15px] leading-relaxed text-[#49454f] dark:text-[#cac4d0]">Or use the New button to upload files and folders</p>
+                <button onclick="openUpload()" class="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0b57d0] px-6 py-3 text-[14px] font-medium text-white shadow hover:shadow-md dark:bg-[#a8c7fa] dark:text-[#062e6f]">
+                  <span class="material-symbols-rounded">upload</span>Upload files
+                </button>
+              </div>
+
+              <div id="loadingState" class="flex items-center justify-center py-24">
+                <div class="h-10 w-10 animate-spin rounded-full border-[3px] border-[#cac4d0] border-t-[#0b57d0] dark:border-[#49454f] dark:border-t-[#a8c7fa]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="mobileOverlay" class="fixed inset-0 z-30 hidden bg-black/50 backdrop-blur-sm md:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- UPLOAD DIALOG - FIXED -->
+  <dialog id="uploadDialog" class="w-[calc(100%-2rem)] max-w-[560px] overflow-hidden rounded-[28px] border-0 bg-white p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-xl dark:bg-[#1c1b1f] open:animate-[fadeIn_.2s_ease]">
+    <form method="dialog" class="flex max-h-[90vh] flex-col">
+      <div class="flex items-center justify-between border-b border-[#e6e0e9] px-6 py-4 dark:border-[#2b2930]">
+        <h2 class="text-[22px] font-medium text-[#1c1b1f] dark:text-white">Upload files</h2>
+        <button type="button" onclick="document.getElementById('uploadDialog').close()" class="flex h-9 w-9 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-auto p-6">
+        <div id="uploadDrop" class="group relative cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed border-[#cac4d0] bg-[#f7f2fa] p-10 text-center transition hover:border-[#0b57d0] hover:bg-[#d3e3fd]/20 dark:border-[#49454f] dark:bg-[#211f26] dark:hover:bg-[#0b57d0]/10">
+          <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d3e3fd] dark:bg-[#0842a0]">
+            <span class="material-symbols-rounded text-[28px] text-[#001d35] dark:text-[#d3e3fd]">cloud_upload</span>
+          </div>
+          <p class="mt-4 text-[16px] font-medium text-[#1c1b1f] dark:text-white">Drag files here or click to browse</p>
+          <p class="mt-1 text-[13px] text-[#49454f] dark:text-[#cac4d0]">Max 100GB per file</p>
+          <input type="file" id="filePicker" multiple class="absolute inset-0 cursor-pointer opacity-0">
+        </div>
+
+        <div id="uploadQueue" class="mt-4 space-y-2 max-h-[200px] overflow-y-auto"></div>
+
+        <!-- URL UPLOAD SECTION -->
+        <div class="mt-6 border-t border-[#e6e0e9] pt-5 dark:border-[#2b2930]">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="material-symbols-rounded text-[20px] text-[#49454f] dark:text-[#cac4d0]">link</span>
+            <h3 class="text-[14px] font-medium text-[#1c1b1f] dark:text-white">Upload from URL</h3>
+          </div>
+          <div class="flex gap-2">
+            <input id="urlInput" type="url" placeholder="https://example.com/file.zip" class="flex-1 rounded-xl border border-[#cac4d0] bg-white px-3.5 py-2.5 text-[14px] text-[#1c1b1f] outline-none placeholder:text-[#49454f] focus:border-[#0b57d0] focus:ring-2 focus:ring-[#0b57d0]/20 dark:border-[#49454f] dark:bg-[#211f26] dark:text-white dark:placeholder:text-[#938f99] dark:focus:border-[#a8c7fa]">
+            <button id="urlUploadBtn" type="button" class="rounded-xl bg-[#0b57d0] px-5 py-2.5 text-[14px] font-medium text-white shadow-sm transition hover:shadow-md active:scale-95 dark:bg-[#a8c7fa] dark:text-[#062e6f]">Add</button>
+          </div>
+          <div id="urlQueue" class="mt-3 space-y-2"></div>
+          <p class="mt-2 text-[12px] text-[#49454f] dark:text-[#938f99]">Paste direct download links. Supports multiple URLs.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between border-t border-[#e6e0e9] bg-[#f7f2fa] px-6 py-3 dark:border-[#2b2930] dark:bg-[#141218]">
+        <select id="uploadDest" class="rounded-xl border border-[#cac4d0] bg-white px-3 py-2 text-[14px] text-[#1c1b1f] outline-none focus:border-[#0b57d0] dark:border-[#49454f] dark:bg-[#211f26] dark:text-white"></select>
+        <div class="flex gap-2">
+          <button type="button" class="rounded-full px-5 py-2 text-[14px] font-medium text-[#49454f] hover:bg-black/5 dark:text-[#cac4d0] dark:hover:bg-white/10" onclick="document.getElementById('uploadDialog').close()">Cancel</button>
+          <button type="button" id="startUpload" class="rounded-full bg-[#0b57d0] px-5 py-2 text-[14px] font-medium text-white shadow-sm disabled:opacity-40 disabled:cursor-not-allowed dark:bg-[#a8c7fa] dark:text-[#062e6f]" disabled>Upload</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[100] hidden -translate-x-1/2 items-center gap-2 rounded-full bg-[#2b2b2b] px-5 py-3 text-[14px] font-medium text-white shadow-xl">
+    <span id="toastText"></span>
+  </div>
+
+  <script>
+  const App = { items:[], current:'', path:[], files:[], view:localStorage.getItem('drive-view')||'list', selected:new Set(), queue:[] };
+  const $ = s => document.querySelector(s);
+  const toast = msg => { $('#toastText').textContent=msg; const t=$('#toast'); t.classList.remove('hidden'); t.classList.add('flex'); setTimeout(()=>{t.classList.add('hidden');t.classList.remove('flex')},2500); };
+  const fmtSize = b => { if(!b) return '—'; const u=['B','KB','MB','GB']; let i=0; while(b>=1024&&i<u.length-1){b/=1024;i++;} return `${b.toFixed(i>1?1:0)} ${u[i]}`; };
+  const icon = n => { const e=n.split('.').pop().toLowerCase(); return {jpg:'image',png:'image',gif:'image',mp4:'movie',mp3:'audio_file',pdf:'picture_as_pdf',zip:'folder_zip',doc:'description'}[e]||'insert_drive_file'; };
+
+  function setTheme(mode) {
+    const dark = mode==='dark';
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', mode);
+    $('#themeToggle').innerHTML = `<span class="material-symbols-rounded text-[22px]">${dark?'light_mode':'dark_mode'}</span>`;
+  }
+  setTheme(localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+  $('#themeToggle').onclick = () => setTheme(document.documentElement.classList.contains('dark')?'light':'dark');
+
+  function toggleSidebar() {
+    const sidebar = $('#sidebar');
+    const overlay = $('#mobileOverlay');
+    sidebar.classList.toggle('hidden');
+    sidebar.classList.toggle('flex');
+    overlay.classList.toggle('hidden');
+  }
+
+  async function api(p,o={}){ const r=await fetch(p,o); if(!r.ok) throw new Error(await r.text()); return r.headers.get('content-type')?.includes('json')?r.json():r.blob(); }
+
+  async function init() {
+    try {
+      $('#loadingState').style.display='flex';
+      const items = await api('/api/myitems');
+      App.items = items;
+      $('#accountEmail').textContent = items[0]?.creator || 'user@archive.org';
+      const total = items.reduce((a,b)=>a+(b.item_size||0),0);
+      $('#storageText').textContent = `${items.length} items • ${fmtSize(total)}`;
+      $('#storageBar').style.width = Math.min(100, total/1024/1024/10*100)+'%';
+      $('#storagePct').textContent = Math.round(total/1024/1024/1024/10*100)+'%';
+      $('#uploadDest').innerHTML = `<option value="new">New item</option>` + items.map(i=>`<option value="${i.identifier}">${i.identifier}</option>`).join('');
+      $('#sidebarItems').innerHTML = items.slice(0,5).map(i=>`
+        <button onclick="selectItem('${i.identifier}')" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] hover:bg-black/5 dark:hover:bg-white/10 ${App.current===i.identifier?'bg-black/5 dark:bg-white/10':''}">
+          <span class="material-symbols-rounded text-[18px] text-[#49454f] dark:text-[#cac4d0]">folder</span>
+          <span class="truncate text-[#1c1b1f] dark:text-[#e6e0e9]">${i.identifier}</span>
+        </button>
+      `).join('');
+      if(items[0]) { App.current = items[0].identifier; $('#currentFolder').textContent = App.current; await loadFiles(); }
+    } catch(e){ toast('Failed to load'); }
+    finally { $('#loadingState').style.display='none'; }
+  }
+
+  async function selectItem(id) { App.current=id; App.path=[]; $('#currentFolder').textContent=id; await loadFiles(); }
+
+  async function loadFiles() {
+    try {
+      const data = await api(`/api/list/${App.current}?q=${encodeURIComponent($('#search').value)}`);
+      const prefix = App.path.join('/') + (App.path.length?'/':'');
+      let files = data.files.filter(f=>{ if(!App.path.length) return!f.name.includes('/')||f.name.split('/').length===1; return f.name.startsWith(prefix); })
+      .map(f=>{ const rel=f.name.substring(prefix.length); const isDir=rel.includes('/'); return {...f,display:isDir?rel.split('/')[0]:rel,isDir,full:f.name}; });
+      const seen=new Set(); files=files.filter(f=>!f.isDir||!seen.has(f.display)&&seen.add(f.display));
+      App.files=files; render();
+    } catch(e){ toast('Error loading'); }
+  }
+
+  function render() {
+    $('#fileCount').textContent = `${App.files.length} items`;
+    const isList = App.view==='list';
+    $('#listView').classList.toggle('hidden',!isList);
+    $('#gridView').classList.toggle('hidden',isList);
+    $('#emptyState').classList.toggle('hidden',App.files.length>0);
+    if(isList) {
+      $('#listBody').innerHTML = App.files.map(f=>`
+        <div class="group grid grid-cols-[48px_1fr_140px_120px_48px] items-center gap-4 px-4 py-3 hover:bg-[#f7f2fa] dark:hover:bg-[#211f26] ${App.selected.has(f.full)?'bg-[#d3e3fd]/30 dark:bg-[#0842a0]/30':''}">
+          <input type="checkbox" ${App.selected.has(f.full)?'checked':''} onchange="toggleSel('${f.full}',this.checked)" class="h-[18px] w-[18px] rounded border-2 border-[#79747e] text-[#0b57d0] focus:ring-0">
+          <div class="flex min-w-0 items-center gap-3 cursor-pointer" ondblclick="openItem('${f.full}',${f.isDir})">
+            <span class="material-symbols-rounded ${f.isDir?'filled text-[#f9ab00]':'text-[#49454f] dark:text-[#cac4d0]'} text-[22px]">${f.isDir?'folder':icon(f.display)}</span>
+            <span class="truncate text-[14px] font-medium text-[#1c1b1f] dark:text-white">${f.display}</span>
+          </div>
+          <div class="hidden text-[13px] text-[#49454f] dark:text-[#cac4d0] md:block">you</div>
+          <div class="hidden text-[13px] text-[#49454f] dark:text-[#cac4d0] sm:block">—</div>
+          <button class="invisible flex h-8 w-8 items-center justify-center rounded-full hover:bg-black/5 group-hover:visible dark:hover:bg-white/10">
+            <span class="material-symbols-rounded text-[20px] text-[#49454f] dark:text-[#cac4d0]">more_vert</span>
+          </button>
+        </div>
+      `).join('');
+    } else {
+      $('#gridBody').innerHTML = App.files.map(f=>`
+        <div class="group relative cursor-pointer overflow-hidden rounded-2xl border border-[#e6e0e9] bg-white transition-all hover:shadow-md hover:-translate-y-0.5 dark:border-[#2b2930] dark:bg-[#1c1b1f] ${App.selected.has(f.full)?'ring-2 ring-[#0b57d0] dark:ring-[#a8c7fa]':''}" onclick="selectFile(event,'${f.full}')" ondblclick="openItem('${f.full}',${f.isDir})">
+          <div class="aspect-[4/3] bg-[#f7f2fa] dark:bg-[#211f26] flex items-center justify-center">
+            ${f.isDir?`<span class="material-symbols-rounded filled text-[64px] text-[#f9ab00]">folder</span>`:
+              ['jpg','jpeg','png','gif','webp'].includes(f.display.split('.').pop().toLowerCase())?`<img src="https://archive.org/services/img/${App.current}/${f.full}" class="h-full w-full object-cover">`:
+              `<span class="material-symbols-rounded text-[48px] text-[#49454f] dark:text-[#cac4d0]">${icon(f.display)}</span>`}
+          </div>
+          <div class="p-3">
+            <div class="truncate text-[14px] font-medium text-[#1c1b1f] dark:text-white">${f.display}</div>
+            <div class="text-[12px] text-[#49454f] dark:text-[#cac4d0]">${f.isDir?'Folder':fmtSize(f.size)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  function setView(v){ App.view=v; localStorage.setItem('drive-view',v); render(); }
+  function toggleSel(id,on){ on?App.selected.add(id):App.selected.delete(id); render(); }
+  function selectFile(e,id){ if(e.metaKey||e.ctrlKey) toggleSel(id,!App.selected.has(id)); else { App.selected.clear(); App.selected.add(id); render(); } }
+  function openItem(full,isDir){ if(isDir){ App.path.push(full.split('/').pop()); loadFiles(); $('#currentFolder').textContent=App.path[App.path.length-1]; } else { window.open(`https://archive.org/download/${App.current}/${full}`,'_blank'); } }
+  function openUpload(){ $('#uploadDialog').showModal(); }
+
+  $('#search').oninput = () => { clearTimeout(window.st); window.st=setTimeout(loadFiles,300); };
+  $('#filePicker').onchange = e => { App.queue=[...e.target.files].map(f=>({file:f,progress:0})); $('#uploadQueue').innerHTML = App.queue.map(q=>`<div class="text-[13px] p-2 bg-[#f7f2fa] dark:bg-[#211f26] rounded">${q.file.name}</div>`).join(''); $('#startUpload').disabled=false; };
+  $('#uploadDrop').onclick = () => $('#filePicker').click();
+
+  // URL upload
+  $('#urlUploadBtn').onclick = async () => {
+    const url = $('#urlInput').value.trim();
+    if (!url) return;
+    const urls = url.split('\n').filter(u => u.trim());
+    const dest = $('#uploadDest').value;
+    const item = dest === 'new'? 'new' : dest;
+
+    for (const singleUrl of urls) {
+      const id = Math.random().toString(36).slice(2);
+      $('#urlQueue').insertAdjacentHTML('beforeend', `
+        <div id="url-${id}" class="flex items-center gap-3 rounded-xl bg-[#f7f2fa] p-3 dark:bg-[#211f26]">
+          <span class="material-symbols-rounded text-[20px] text-[#49454f] dark:text-[#cac4d0]">link</span>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[13px] font-medium text-[#1c1b1f] dark:text-white">${singleUrl}</div>
+            <div class="text-[11px] text-[#49454f] dark:text-[#cac4d0]">Uploading...</div>
+          </div>
+          <div class="h-4 w-4 animate-spin rounded-full border-2 border-[#cac4d0] border-t-[#0b57d0] dark:border-[#49454f] dark:border-t-[#a8c7fa]"></div>
+        </div>
+      `);
+      try {
+        await api(`/api/upload-url/${item}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url:singleUrl}) });
+        document.querySelector(`#url-${id} div:last-child`).innerHTML = '<span class="material-symbols-rounded text-[20px] text-green-600">check_circle</span>';
+        document.querySelector(`#url-${id}.text-\\[11px\\]`).textContent = 'Done';
+      } catch {
+        document.querySelector(`#url-${id} div:last-child`).innerHTML = '<span class="material-symbols-rounded text-[20px] text-red-600">error</span>';
+        document.querySelector(`#url-${id}.text-\\[11px\\]`).textContent = 'Failed';
+      }
+    }
+    $('#urlInput').value = '';
+    toast(`Added ${urls.length} URL${urls.length>1?'s':''}`);
+    setTimeout(()=>{ $('#uploadDialog').close(); init(); }, 1500);
+  };
+  $('#urlInput').onkeydown = e => { if(e.key==='Enter'){ e.preventDefault(); $('#urlUploadBtn').click(); } };
+
+  $('#startUpload').onclick = async () => {
+    const dest = $('#uploadDest').value;
+    const item = dest==='new'?'new':dest;
+    for(const q of App.queue) {
+      const fd = new FormData(); fd.append('files', q.file);
+      await fetch(`/api/upload/${item}`, { method:'POST', body:fd });
+    }
+    toast(`Uploaded ${App.queue.length} files`);
+    App.queue=[]; $('#uploadDialog').close(); init();
+  };
+
+  init(); setView(App.view);
+  </script>
+</body>
+</html>

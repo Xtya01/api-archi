@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  archive-drive:
+    build:.
+    ports:
+      - "3000:3000"
+    environment:
+      - IA_ACCESS_KEY=${IA_ACCESS_KEY}
+      - IA_SECRET_KEY=${IA_SECRET_KEY}
+      - IA_EMAIL=${IA_EMAIL}
+    restart: unless-stopped
